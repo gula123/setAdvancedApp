@@ -1,0 +1,8 @@
+spring:
+  cloud:
+    aws:
+      dynamodb:
+        region: us-east-1 # Force 'us-east-1' instead of relying on environment variables
+      credentials:
+        access-key: dummy-key
+        secret-key: dummy-secret-key
