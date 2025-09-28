@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/images")
+@RequestMapping("/image")
 public class ImageController {
 
     private final ImageService imageService;
@@ -44,7 +44,7 @@ public class ImageController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/search")
+    @GetMapping("/")
     public ResponseEntity<List<Image>> searchByLabel(@RequestParam String label) {
         List<Image> images = imageService.searchByLabel(label);
         return ResponseEntity.ok(images);

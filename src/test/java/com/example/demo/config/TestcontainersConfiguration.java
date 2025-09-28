@@ -17,7 +17,7 @@ class TestcontainersConfiguration {
     LocalStackContainer localStackContainer() {
         System.out.println("Copying init-dynamodb-table.sh to LocalStack...");
         return new LocalStackContainer(DockerImageName.parse("localstack/localstack:4.3.0"))
-          .withServices(LocalStackContainer.Service.DYNAMODB)
+          .withServices(LocalStackContainer.Service.DYNAMODB, LocalStackContainer.Service.S3)
           .withCopyFileToContainer(
             MountableFile.forClasspathResource("init-dynamodb-table.sh", 0744),
             "/etc/localstack/init/ready.d/init-dynamodb-table.sh"
