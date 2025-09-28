@@ -27,12 +27,12 @@ public class ImageService {
         return image;
     }
 
-    public Image getById(String id) {
+    public Image getById(Integer id) {
         Key key = Key.builder().partitionValue(id).build();
         return dynamoDbTemplate.load(key, Image.class);
     }
 
-    public void deleteById(String id) {
+    public void deleteById(Integer id) {
         Key key = Key.builder().partitionValue(id).build();
         dynamoDbTemplate.delete(key, Image.class);
     }
