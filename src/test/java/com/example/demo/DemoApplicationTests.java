@@ -8,9 +8,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.io.IOException;
 
 import software.amazon.awssdk.enhanced.dynamodb.Key;
 
@@ -54,34 +52,30 @@ class DemoApplicationTests {
   }
 
   @Test
-  void createAndRetrieveImageByLabel() {
-    Set<String> label = Set.of("test-label");
-    Image image = new Image();
-    image.setId(UUID.randomUUID()); // Ensure id is set
-    image.setLabels(label);
+  void createAndRetrieveImageById() throws IOException {
+    org.springframework.mock.web.MockMultipartFile multipartFile =
+        new org.springframework.mock.web.MockMultipartFile(
+            "file", "test.jpg", "image/jpeg", "dummy image content".getBytes()
+        );
 
-    imageService.create(image);
+    Image createdImage = imageService.create(multipartFile);
 
-    List<Image> retrievedImages = imageService.searchByLabel("test-label");
+    Image retrievedImage = imageService.getById(createdImage.getId());
 
-    assertThat(retrievedImages.get(0))
+    assertThat(retrievedImage)
         .isNotNull()
         .usingRecursiveComparison()
-        .isEqualTo(image);
+        .isEqualTo(createdImage);
   }
 
   @Test
   void testS3Operations() {
-    // Create bucket
     s3Template.createBucket("test-bucket");
 
-    // Upload file
     s3Template.store("test-bucket", "test-key", "Hello S3!".getBytes());
 
-    // Download file
     S3Resource resource = s3Template.download("test-bucket", "test-key");
 
-    // Verify
     assertThat(resource).isNotNull();
   }
 

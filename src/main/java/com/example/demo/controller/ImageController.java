@@ -3,9 +3,12 @@ package com.example.demo.controller;
 import com.example.demo.model.Image;
 import com.example.demo.service.ImageService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,17 +23,18 @@ public class ImageController {
         this.imageService = imageService;
     }
 
-    @PostMapping
-    public ResponseEntity<Image> createImage(@RequestBody Image image) {
-        if (image.getId() == null) {
-            image.setId(UUID.randomUUID());
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Image> uploadImage(@RequestParam("file") MultipartFile file) {
+        try {
+            Image created = imageService.create(file);
+            return ResponseEntity.ok(created);
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().build();
         }
-        Image created = imageService.create(image);
-        return ResponseEntity.ok(created);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Image> getImage(@PathVariable Integer id) {
+    public ResponseEntity<Image> getImage(@PathVariable UUID id) {
         Image image = imageService.getById(id);
         if (image == null) {
             return ResponseEntity.notFound().build();
@@ -39,7 +43,7 @@ public class ImageController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteImage(@PathVariable Integer id) {
+    public ResponseEntity<Void> deleteImage(@PathVariable UUID id) {
         imageService.deleteById(id);
         return ResponseEntity.noContent().build();
     }
