@@ -19,6 +19,16 @@ public class Image {
   private LocalDateTime timeUpdated;
   private Set<String> labels;
 
+  private Status status;
+
+  public Status getStatus() {
+    return status;
+  }
+
+  public void setStatus(Status status) {
+    this.status = status;
+  }
+
   @DynamoDbPartitionKey
   public UUID getId() {
     return id;
