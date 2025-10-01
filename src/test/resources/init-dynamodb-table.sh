@@ -1,7 +1,7 @@
 #!/bin/bash
 user_table_name="users"
 partition_key="id"
-image_table_name="image"
+image_table_name="setadvancedtable"
 
 echo "Starting table creation in LocalStack..."
 
