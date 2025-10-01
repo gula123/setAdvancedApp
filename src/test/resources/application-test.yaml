@@ -1,8 +1,14 @@
 spring:
   cloud:
     aws:
-      dynamodb:
-        region: us-east-1 # Force 'us-east-1' instead of relying on environment variables
+      region:
+        static: us-east-1 # Force 'us-east-1' for LocalStack
       credentials:
         access-key: dummy-key
         secret-key: dummy-secret-key
+
+app:
+  s3:
+    bucket-name: test-bucket
+  dynamodb:
+    image-table-name: setadvancedtable
