@@ -10,7 +10,7 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
 
 @DynamoDbBean
-@TableName(name = "setadvancedtable")
+@TableName(propertyName = "app.dynamodb.image-table-name")
 public class Image {
   private UUID id;
   private String objectPath;

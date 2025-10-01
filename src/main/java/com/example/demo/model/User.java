@@ -8,7 +8,7 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
 
 @DynamoDbBean
-@TableName(name = "users")
+@TableName(propertyName = "app.dynamodb.user-table-name")
 public class User {
 
   private UUID id;

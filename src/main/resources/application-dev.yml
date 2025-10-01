@@ -10,3 +10,6 @@ spring:
 app:
   s3:
     bucket-name: ${S3_BUCKET_NAME:setadvanced}
+  dynamodb:
+    image-table-name: ${DYNAMODB_IMAGE_TABLE_NAME:setadvancedtable}
+    user-table-name: ${DYNAMODB_USER_TABLE_NAME:users}

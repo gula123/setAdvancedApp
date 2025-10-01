@@ -8,5 +8,10 @@ import java.lang.annotation.Target;
 @Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
 public
 @interface TableName {
-    String name();
+    /**
+     * The application property name that holds the actual table name.
+     * For example: "app.dynamodb.table-name"
+     * The resolver will lookup this property to get the actual table name.
+     */
+    String propertyName();
 }

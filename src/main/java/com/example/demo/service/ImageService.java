@@ -25,7 +25,7 @@ public class ImageService {
     private final DynamoDbTemplate dynamoDbTemplate;
     private final S3Template s3Template;
     
-    @Value("${app.s3.bucket-name:images-bucket}")
+    @Value("${app.s3.bucket-name}")
     private String bucketName;
 
     @Autowired
