@@ -34,12 +34,17 @@ public class ImageController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Image> getImage(@PathVariable UUID id) {
-        Image image = imageService.getById(id);
-        if (image == null) {
-            return ResponseEntity.notFound().build();
+    public ResponseEntity<?> getImage(@PathVariable UUID id) {
+        try {
+            Image image = imageService.getById(id);
+            if (image == null) {
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.ok(image);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                .body("Error: " + e.getMessage() + " | Cause: " + (e.getCause() != null ? e.getCause().getMessage() : "none"));
         }
-        return ResponseEntity.ok(image);
     }
 
     @DeleteMapping("/{id}")

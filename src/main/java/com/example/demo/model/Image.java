@@ -2,17 +2,17 @@ package com.example.demo.model;
 
 import java.time.LocalDateTime;
 import java.util.Set;
-import java.util.UUID;
 
 import com.example.demo.annotations.TableName;
 
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSortKey;
 
 @DynamoDbBean
 @TableName(propertyName = "app.dynamodb.image-table-name")
 public class Image {
-  private UUID id;
+  private String id;
   private String objectPath;
   private String objectSize;
   private LocalDateTime timeAdded;
@@ -30,14 +30,15 @@ public class Image {
   }
 
   @DynamoDbPartitionKey
-  public UUID getId() {
+  public String getId() {
     return id;
   }
 
-  public void setId(UUID id) {
+  public void setId(String id) {
     this.id = id;
   }
 
+  @DynamoDbSortKey
   public String getObjectPath() {
     return objectPath;
   }

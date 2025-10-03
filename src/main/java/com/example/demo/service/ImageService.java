@@ -63,7 +63,7 @@ public class ImageService {
         
         // Create Image metadata for DynamoDB
         Image image = new Image();
-        image.setId(imageId);
+        image.setId(imageId.toString());
         image.setObjectPath(objectKey);
         image.setObjectSize(String.valueOf(file.getSize()));
         image.setTimeAdded(LocalDateTime.now());
@@ -76,13 +76,44 @@ public class ImageService {
     }
 
     public Image getById(UUID id) {
-        Key key = Key.builder().partitionValue(id.toString()).build();
-        return dynamoDbTemplate.load(key, Image.class);
+        String idString = id.toString();
+        System.out.println("Looking for image with ID: " + idString);
+        
+        try {
+            // Since we have a composite key (id + objectPath), we need to query by partition key
+            // and get the first match (assuming one image per ID)
+            Expression expression = Expression.builder()
+                .expression("#id = :id")
+                .putExpressionName("#id", "id")
+                .putExpressionValue(":id", AttributeValue.builder().s(idString).build())
+                .build();
+
+            ScanEnhancedRequest scanRequest = ScanEnhancedRequest
+                .builder()
+                .filterExpression(expression)
+                .limit(1)
+                .build();
+
+            return dynamoDbTemplate.scan(scanRequest, Image.class)
+                .stream()
+                .flatMap(page -> page.items().stream())
+                .findFirst()
+                .orElse(null);
+        } catch (Exception e) {
+            System.out.println("DynamoDB Error: " + e.getMessage());
+            throw e;
+        }
     }
 
     public void deleteById(UUID id) {
-        Key key = Key.builder().partitionValue(id.toString()).build();
-        dynamoDbTemplate.delete(key, Image.class);
+        Image image = getById(id);
+        if (image != null) {
+            Key key = Key.builder()
+                .partitionValue(id.toString())
+                .sortValue(image.getObjectPath())
+                .build();
+            dynamoDbTemplate.delete(key, Image.class);
+        }
     }
 
     public List<Image> searchByLabel(String label) {
