@@ -12,3 +12,14 @@ app:
     bucket-name: ${S3_BUCKET_NAME:setadvanced}
   dynamodb:
     image-table-name: ${DYNAMODB_IMAGE_TABLE_NAME:setadvancedtable}
+
+# Management endpoints for health checks
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      enabled: true
+      show-details: when-authorized
