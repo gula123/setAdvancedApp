@@ -5,6 +5,9 @@ import com.example.demo.model.Status;
 import io.awspring.cloud.dynamodb.DynamoDbTemplate;
 import io.awspring.cloud.s3.S3Template;
 import org.springframework.beans.factory.annotation.Value;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.multipart.MultipartFile;
@@ -24,14 +27,16 @@ public class ImageService {
 
     private final DynamoDbTemplate dynamoDbTemplate;
     private final S3Template s3Template;
+    private final S3Client s3Client;
     
     @Value("${app.s3.bucket-name}")
     private String bucketName;
 
     @Autowired
-    public ImageService(DynamoDbTemplate dynamoDbTemplate, S3Template s3Template) {
+    public ImageService(DynamoDbTemplate dynamoDbTemplate, S3Template s3Template, S3Client s3Client) {
         this.dynamoDbTemplate = dynamoDbTemplate;
         this.s3Template = s3Template;
+        this.s3Client = s3Client;
     }
 
     public Image create(MultipartFile file) throws IOException {
@@ -54,9 +59,15 @@ public class ImageService {
             }
         }
         
-        // Upload file to S3
+        // Upload file to S3 using direct S3Client to avoid serialization issues
         try {
-            s3Template.store(bucketName, objectKey, file.getBytes());
+            PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(objectKey)
+                .contentType(file.getContentType())
+                .build();
+            
+            s3Client.putObject(putObjectRequest, RequestBody.fromBytes(file.getBytes()));
         } catch (IOException e) {
             throw new RuntimeException("Failed to upload file to S3", e);
         }

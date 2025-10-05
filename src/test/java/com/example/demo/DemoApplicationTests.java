@@ -36,7 +36,7 @@ class DemoApplicationTests {
 
     Image createdImage = imageService.create(multipartFile);
 
-    Image retrievedImage = imageService.getById(createdImage.getId());
+    Image retrievedImage = imageService.getById(java.util.UUID.fromString(createdImage.getId()));
 
     assertThat(retrievedImage)
         .isNotNull()
