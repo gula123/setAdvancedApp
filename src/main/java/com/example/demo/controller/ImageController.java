@@ -3,6 +3,7 @@ package com.example.demo.controller;
 import com.example.demo.model.Image;
 import com.example.demo.service.ImageService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -34,7 +35,7 @@ public class ImageController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getImage(@PathVariable UUID id) {
+    public ResponseEntity<Object> getImage(@PathVariable UUID id) {
         try {
             Image image = imageService.getById(id);
             if (image == null) {
@@ -57,5 +58,27 @@ public class ImageController {
     public ResponseEntity<List<Image>> searchByLabel(@RequestParam String label) {
         List<Image> images = imageService.searchByLabel(label);
         return ResponseEntity.ok(images);
+    }
+
+    @GetMapping("/file/{id}")
+    public ResponseEntity<byte[]> downloadImageFile(@PathVariable UUID id) {
+        try {
+            byte[] imageData = imageService.downloadImageFile(id);
+            String contentType = imageService.getImageContentType(id);
+            
+            // Get file extension from content type
+            String fileExtension = imageService.getFileExtensionFromContentType(contentType);
+            String filename = "image-" + id + fileExtension;
+            
+            return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(contentType))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")
+                .body(imageData);
+        } catch (RuntimeException e) {
+            if (e.getMessage().contains("not found")) {
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.internalServerError().build();
+        }
     }
 }

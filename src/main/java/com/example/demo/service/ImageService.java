@@ -7,6 +7,7 @@ import io.awspring.cloud.s3.S3Template;
 import org.springframework.beans.factory.annotation.Value;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -119,11 +120,22 @@ public class ImageService {
     public void deleteById(UUID id) {
         Image image = getById(id);
         if (image != null) {
-            Key key = Key.builder()
-                .partitionValue(id.toString())
-                .sortValue(image.getObjectPath())
-                .build();
-            dynamoDbTemplate.delete(key, Image.class);
+            try {
+                // Delete file from S3 first
+                s3Client.deleteObject(builder -> builder
+                    .bucket(bucketName)
+                    .key(image.getObjectPath())
+                );
+                
+                // Then delete metadata from DynamoDB
+                Key key = Key.builder()
+                    .partitionValue(id.toString())
+                    .sortValue(image.getObjectPath())
+                    .build();
+                dynamoDbTemplate.delete(key, Image.class);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to delete image: " + e.getMessage(), e);
+            }
         }
     }
 
@@ -143,5 +155,57 @@ public class ImageService {
           .stream()
           .flatMap(page -> page.items().stream())
           .toList();
+    }
+
+    public byte[] downloadImageFile(UUID id) {
+        // First get the image metadata to find the S3 object path
+        Image image = getById(id);
+        if (image == null) {
+            throw new RuntimeException("Image not found with ID: " + id);
+        }
+
+        try {
+            // Download the file from S3
+            GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                .bucket(bucketName)
+                .key(image.getObjectPath())
+                .build();
+            
+            return s3Client.getObject(getObjectRequest).readAllBytes();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to download image from S3: " + e.getMessage(), e);
+        }
+    }
+
+    public String getImageContentType(UUID id) {
+        Image image = getById(id);
+        if (image == null) {
+            return null;
+        }
+        
+        // Extract content type from file extension
+        String objectPath = image.getObjectPath();
+        if (objectPath.toLowerCase().endsWith(".jpg") || objectPath.toLowerCase().endsWith(".jpeg")) {
+            return "image/jpeg";
+        } else if (objectPath.toLowerCase().endsWith(".png")) {
+            return "image/png";
+        } else if (objectPath.toLowerCase().endsWith(".gif")) {
+            return "image/gif";
+        } else if (objectPath.toLowerCase().endsWith(".webp")) {
+            return "image/webp";
+        }
+        return "application/octet-stream";
+    }
+    
+    public String getFileExtensionFromContentType(String contentType) {
+        if (contentType == null) return "";
+        
+        return switch (contentType.toLowerCase()) {
+            case "image/jpeg" -> ".jpg";
+            case "image/png" -> ".png";
+            case "image/gif" -> ".gif";
+            case "image/webp" -> ".webp";
+            default -> "";
+        };
     }
 }
