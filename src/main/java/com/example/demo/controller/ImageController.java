@@ -26,12 +26,36 @@ public class ImageController {
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Image> uploadImage(@RequestParam("file") MultipartFile file) {
+        // Validate that the file is an image
+        if (!isValidImageFile(file)) {
+            return ResponseEntity.badRequest().build();
+        }
+        
         try {
             Image created = imageService.create(file);
             return ResponseEntity.ok(created);
         } catch (IOException e) {
             return ResponseEntity.internalServerError().build();
         }
+    }
+    
+    private boolean isValidImageFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            return false;
+        }
+        
+        String contentType = file.getContentType();
+        if (contentType == null) {
+            return false;
+        }
+        
+        // Check if content type is an image type
+        return contentType.startsWith("image/") && 
+               (contentType.equals("image/jpeg") || 
+                contentType.equals("image/jpg") || 
+                contentType.equals("image/png") || 
+                contentType.equals("image/gif") || 
+                contentType.equals("image/webp"));
     }
 
     @GetMapping("/{id}")

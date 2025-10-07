@@ -90,4 +90,31 @@ class ImageSearchByLabelControllerTest {
             .statusCode(200)
             .body("labels.flatten()", hasItem(labelToSearch));
     }
+
+    @Test
+    @Order(2)
+    void testSearchByWrongParameterKey() {
+        // Test with wrong parameter key (should return 400 Bad Request)
+        given()
+            .queryParam("wrongParam", "somevalue")
+        .when()
+            .get("/")
+        .then()
+            .statusCode(400);
+    }
+
+    @Test
+    @Order(3)
+    void testSearchByNonExistentLabel() {
+        // Test with a label that doesn't exist in any image
+        String nonExistentLabel = "nonexistentlabel12345";
+        
+        given()
+            .queryParam("label", nonExistentLabel)
+        .when()
+            .get("/")
+        .then()
+            .statusCode(200)
+            .body("size()", equalTo(0)); // Should return empty array
+    }
 }

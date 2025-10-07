@@ -62,14 +62,26 @@ class ImageGetByIdControllerTest {
         String imageId = response.jsonPath().getString("id");
         createdImageIds.add(imageId);
 
-        // Get by id
+        // Get by id and validate all Image model fields
         given()
             .pathParam("id", imageId)
         .when()
             .get("/{id}")
         .then()
             .statusCode(200)
-            .body("id", equalTo(imageId));
+            // Required fields that should always be present
+            .body("id", equalTo(imageId))
+            .body("id", notNullValue())
+            .body("objectPath", notNullValue())
+            .body("objectPath", startsWith("images/"))
+            .body("objectPath", containsString(imageId))
+            .body("objectSize", notNullValue())
+            .body("objectSize", matchesPattern("\\d+")) // Should be a numeric string
+            .body("timeAdded", notNullValue())
+            .body("timeUpdated", notNullValue())
+            .body("status", equalTo("ACTIVE"))
+            // Labels might be null initially (AWS processing takes time)
+            .body("labels", anyOf(nullValue(), instanceOf(java.util.Collection.class)));
     }
 
     @Test

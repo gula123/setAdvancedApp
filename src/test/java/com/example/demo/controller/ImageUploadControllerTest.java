@@ -94,4 +94,28 @@ class ImageUploadControllerTest {
         .then()
             .statusCode(415); // Missing multipart file returns 415 Unsupported Media Type
     }
+
+    @Test
+    @Order(3)
+    void testUploadNonImageFile() throws Exception {
+        // Create a temporary text file
+        File txtFile = File.createTempFile("test-document", ".txt");
+        try (java.io.FileWriter writer = new java.io.FileWriter(txtFile)) {
+            writer.write("This is a test text file, not an image!");
+        }
+
+        try {
+            given()
+                .multiPart("file", txtFile, "text/plain")
+            .when()
+                .post()
+            .then()
+                .statusCode(400);
+        } finally {
+            // Clean up the temporary file
+            if (txtFile.exists()) {
+                txtFile.delete();
+            }
+        }
+    }
 }
