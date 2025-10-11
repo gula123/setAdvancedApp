@@ -60,12 +60,16 @@ jobs:
           target/surefire-reports/
           target/site/
 
-    - name: Publish test results
+    - name: Test Summary
       if: always()
-      uses: dorny/test-reporter@v1
-      with:
-        name: Maven Tests
-        path: 'target/surefire-reports/TEST-*.xml'
-        reporter: java-junit
-        fail-on-error: false
-        only-summary: false
+      run: |
+        echo "## Test Execution Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        if [ -f target/surefire-reports/TEST-*.xml ]; then
+          echo "✅ Test reports generated successfully" >> $GITHUB_STEP_SUMMARY
+          echo "📄 Detailed test reports are available in the uploaded artifacts" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "⚠️ No test reports found" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "View the 'test-results' artifact for detailed test reports and HTML output." >> $GITHUB_STEP_SUMMARY
