@@ -39,9 +39,9 @@ jobs:
         TEST_BASE_URI: http://setadvancedloadbalancer-1839284937.eu-north-1.elb.amazonaws.com
       run: mvn test
 
-    - name: Generate test report
+    - name: Generate test report (report-only mode)
       if: always()
-      run: mvn surefire-report:report
+      run: mvn surefire-report:report-only
 
     - name: List test report files
       if: always()
