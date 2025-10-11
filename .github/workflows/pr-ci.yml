@@ -60,16 +60,10 @@ jobs:
           target/surefire-reports/
           target/site/
 
-    - name: Test Summary
+    - name: Publish Test Results
+      uses: mikepenz/action-junit-report@v4
       if: always()
-      run: |
-        echo "## Test Execution Summary" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        if [ -f target/surefire-reports/TEST-*.xml ]; then
-          echo "✅ Test reports generated successfully" >> $GITHUB_STEP_SUMMARY
-          echo "📄 Detailed test reports are available in the uploaded artifacts" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "⚠️ No test reports found" >> $GITHUB_STEP_SUMMARY
-        fi
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "View the 'test-results' artifact for detailed test reports and HTML output." >> $GITHUB_STEP_SUMMARY
+      with:
+        report_paths: 'target/surefire-reports/TEST-*.xml'
+        check_name: 'Maven Test Results'
+        fail_on_failure: false
