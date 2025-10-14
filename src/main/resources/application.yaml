@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: demo
+
+app:
+  upload:
+    supported-image-types:
+      - image/jpeg
+      - image/jpg
+      - image/png
+      - image/gif
+      - image/webp
