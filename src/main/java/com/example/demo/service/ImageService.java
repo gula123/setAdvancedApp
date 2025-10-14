@@ -19,6 +19,7 @@ import software.amazon.awssdk.enhanced.dynamodb.model.ScanEnhancedRequest;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
 import java.io.IOException;
+import java.net.URLConnection;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -183,18 +184,10 @@ public class ImageService {
             return null;
         }
         
-        // Extract content type from file extension
         String objectPath = image.getObjectPath();
-        if (objectPath.toLowerCase().endsWith(".jpg") || objectPath.toLowerCase().endsWith(".jpeg")) {
-            return "image/jpeg";
-        } else if (objectPath.toLowerCase().endsWith(".png")) {
-            return "image/png";
-        } else if (objectPath.toLowerCase().endsWith(".gif")) {
-            return "image/gif";
-        } else if (objectPath.toLowerCase().endsWith(".webp")) {
-            return "image/webp";
-        }
-        return "application/octet-stream";
+        String contentType = URLConnection.guessContentTypeFromName(objectPath);
+        
+        return contentType != null ? contentType : "application/octet-stream";
     }
     
     public String getFileExtensionFromContentType(String contentType) {
