@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import com.example.demo.config.UploadConfig;
 import com.example.demo.model.Image;
 import com.example.demo.service.ImageService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,10 +19,12 @@ import java.util.UUID;
 public class ImageController {
 
     private final ImageService imageService;
+    private final UploadConfig uploadConfig;
 
     @Autowired
-    public ImageController(ImageService imageService) {
+    public ImageController(ImageService imageService, UploadConfig uploadConfig) {
         this.imageService = imageService;
+        this.uploadConfig = uploadConfig;
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -49,13 +52,8 @@ public class ImageController {
             return false;
         }
         
-        // Check if content type is an image type
-        return contentType.startsWith("image/") && 
-               (contentType.equals("image/jpeg") || 
-                contentType.equals("image/jpg") || 
-                contentType.equals("image/png") || 
-                contentType.equals("image/gif") || 
-                contentType.equals("image/webp"));
+        // Check if content type is in the configured supported image types
+        return uploadConfig.getSupportedImageTypes().contains(contentType);
     }
 
     @GetMapping("/{id}")
