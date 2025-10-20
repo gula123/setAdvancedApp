@@ -1,6 +1,6 @@
 # DynamoDB table for storing recognition results
 resource "aws_dynamodb_table" "image_recognition_results" {
-  name           = "${var.dynamodb_table_name}-${var.environment}"
+  name           = var.dynamodb_table_name
   billing_mode   = "PROVISIONED"
   read_capacity  = 5
   write_capacity = 5
@@ -18,7 +18,7 @@ resource "aws_dynamodb_table" "image_recognition_results" {
   }
 
   tags = {
-    Name        = "${var.dynamodb_table_name}-${var.environment}"
+    Name        = var.dynamodb_table_name
     Environment = var.environment
   }
 }

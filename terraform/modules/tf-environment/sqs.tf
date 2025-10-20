@@ -1,10 +1,10 @@
 # SQS queue for processing image notifications
 resource "aws_sqs_queue" "image_processing_queue" {
-  name       = "${var.sqs_name}-${var.environment}"
+  name       = var.sqs_name
   fifo_queue = false
 
   tags = {
-    Name        = "${var.sqs_name}-${var.environment}"
+    Name        = var.sqs_name
     Environment = var.environment
   }
 }

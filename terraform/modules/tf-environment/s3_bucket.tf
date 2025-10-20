@@ -1,9 +1,9 @@
 # S3 bucket for storing images
 resource "aws_s3_bucket" "image_bucket" {
-  bucket = "${var.bucket_name}-gula-${var.environment}"
+  bucket = var.bucket_name
 
   tags = {
-    Name        = "${var.bucket_name}-gula-${var.environment}"
+    Name        = var.bucket_name
     Environment = var.environment
   }
 }

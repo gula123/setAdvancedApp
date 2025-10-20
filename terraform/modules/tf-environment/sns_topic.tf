@@ -1,9 +1,9 @@
 # SNS topic for image notifications
 resource "aws_sns_topic" "image_notification" {
-  name = "${var.sns_name}-${var.environment}"
+  name = var.sns_name
 
   tags = {
-    Name        = "${var.sns_name}-${var.environment}"
+    Name        = var.sns_name
     Environment = var.environment
   }
 }
