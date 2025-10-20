@@ -1,0 +1,51 @@
+variable "s3_bucket_name" {
+  type        = string
+  description = "Name of the S3 bucket for images"
+}
+
+variable "dynamodb_table_name" {
+  type        = string
+  description = "Name of the DynamoDB table for results"
+}
+
+variable "subnet_ids" {
+  type        = list(string)
+  description = "List of subnet IDs for deployment"
+}
+
+variable "vpc_id" {
+  type        = string
+  description = "VPC ID for deployment"
+}
+
+variable "region_name" {
+  type        = string
+  description = "AWS region name"
+}
+
+variable "image_uri" {
+  type        = string
+  description = "URI of the container image for ECS"
+}
+
+variable "environment" {
+  type        = string
+  description = "Environment name (dev, qa, prod)"
+  default     = "dev"
+}
+
+variable "application_port" {
+  type        = number
+  description = "Port on which the application runs"
+  default     = 8080
+}
+
+variable "sqs_queue_arn" {
+  type        = string
+  description = "ARN of the SQS queue"
+}
+
+variable "sqs_queue_url" {
+  type        = string
+  description = "URL of the SQS queue"
+}
