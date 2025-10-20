@@ -36,6 +36,7 @@ resource "aws_lambda_function" "image_processing_lambda" {
     variables = {
       DYNAMODB_TABLE_NAME = var.dynamodb_table_name
       S3_BUCKET_NAME     = var.s3_bucket_name
+      AWS_DEFAULT_REGION = var.region_name
     }
   }
 

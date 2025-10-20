@@ -1,75 +1,101 @@
 import json
 import boto3
-import urllib.parse
+from boto3.dynamodb.conditions import Attr
+import datetime
+import os
+from botocore.config import Config
 
-# Initialize AWS clients
-s3_client = boto3.client('s3')
-rekognition_client = boto3.client('rekognition')
-dynamodb = boto3.resource('dynamodb')
+# Get environment variables
+dynamodb_table_name = os.environ.get('DYNAMODB_TABLE_NAME', 'setadvancedtable')
+s3_bucket_name = os.environ.get('S3_BUCKET_NAME', 'default-bucket')
+aws_region = os.environ.get('AWS_DEFAULT_REGION', 'eu-north-1')
+
+# Configure timeouts for AWS clients
+config = Config(
+    connect_timeout=5,
+    read_timeout=30,
+    retries={'max_attempts': 3}
+)
+
+s3 = boto3.client("s3", region_name=aws_region, config=config)
+rekognition = boto3.client("rekognition", region_name="eu-west-1", config=config)
+dynamodb = boto3.resource("dynamodb", region_name=aws_region, config=config)
+table = dynamodb.Table(dynamodb_table_name)
+
+def is_image_file(key):
+    return key.lower().endswith(('.jpg', '.jpeg', '.png'))
 
 def lambda_handler(event, context):
-    """
-    Lambda function to process images from SQS queue, 
-    run image recognition, and store results in DynamoDB
-    """
-    
-    # Get environment variables
-    dynamodb_table_name = context.get('dynamodb_table_name', 'image-recognition-results')
-    
-    try:
-        # Process each record from SQS
-        for record in event['Records']:
-            # Parse the SQS message which contains SNS notification
-            message_body = json.loads(record['body'])
-            sns_message = json.loads(message_body['Message'])
-            
-            # Extract S3 bucket and object information
-            for s3_record in sns_message['Records']:
-                bucket_name = s3_record['s3']['bucket']['name']
-                object_key = urllib.parse.unquote_plus(
-                    s3_record['s3']['object']['key'], 
-                    encoding='utf-8'
-                )
-                
-                print(f"Processing image: {object_key} from bucket: {bucket_name}")
-                
-                # Call Amazon Rekognition to detect labels
+    for event_record in event["Records"]:
+        try:
+            body = json.loads(event_record["body"])
+            message = json.loads(body["Message"])
+
+            for record in message["Records"]:
+                bucket = record["s3"]["bucket"]["name"]
+                key = record["s3"]["object"]["key"]
+
+                print(f"Processing S3 object: bucket={bucket}, key={key}")
+
+                if not is_image_file(key):
+                    print(f"Skipping non-image file: {key}")
+                    continue
+
                 try:
-                    response = rekognition_client.detect_labels(
-                        Image={
-                            'S3Object': {
-                                'Bucket': bucket_name,
-                                'Name': object_key
-                            }
-                        },
+                    s3_response = s3.get_object(Bucket=bucket, Key=key)
+                    image_bytes = s3_response['Body'].read()
+                except Exception as e:
+                    print(f"S3 get_object error for {key}: {e}")
+                    continue
+
+                try:
+                    response = rekognition.detect_labels(
+                        Image={'Bytes': image_bytes},
                         MaxLabels=10,
-                        MinConfidence=70
+                        MinConfidence=75
                     )
-                    
-                    # Store results in DynamoDB
-                    table = dynamodb.Table(dynamodb_table_name)
-                    
-                    for label in response['Labels']:
-                        table.put_item(
-                            Item={
-                                'ImageName': object_key,
-                                'LabelValue': label['Name'],
-                                'Confidence': str(label['Confidence']),
-                                'Timestamp': context.aws_request_id
+                except Exception as e:
+                    print(f"Rekognition error for {key}: {e}")
+                    continue
+
+                labels = [label["Name"] for label in response["Labels"]]
+                now = datetime.datetime.now()
+                iso_time = now.strftime('%Y-%m-%dT%H:%M:%S.%f') + '000'
+
+                scan_response = table.scan(
+                    FilterExpression=Attr("objectPath").eq(key)
+                )
+
+                if not scan_response.get("Items"):
+                    print(f"No item found in DynamoDB with objectPath={key}")
+                    continue
+
+                for item in scan_response["Items"]:
+                    item_id = item["id"]
+                    try:
+                        table.update_item(
+                            Key={
+                                "id": item_id,
+                                "objectPath": key
+                            },
+                            UpdateExpression="""
+                                ADD labels :new_labels
+                                SET #status = :status,
+                                    timeUpdated = :timeUpdated
+                            """,
+                            ExpressionAttributeValues={
+                                ":new_labels": set(labels),
+                                ":status": "ACTIVE",
+                                ":timeUpdated": iso_time,
+                            },
+                            ExpressionAttributeNames={
+                                "#status": "status"
                             }
                         )
-                    
-                    print(f"Successfully processed {object_key} with {len(response['Labels'])} labels")
-                    
-                except Exception as e:
-                    print(f"Error processing image {object_key}: {str(e)}")
-                    raise e
-        
-        return {
-            'statusCode': 200,
-            'body': json.dumps('Successfully processed images')
-        }
-        
-    except Exception as e:
-        print(f"Error processing SQS message: {str(e)}")
-        raise e
+                        print(f"Updated item with id={item_id} and objectPath={key}")
+                    except Exception as e:
+                        print(f"Error updating DynamoDB for id={item_id}, key={key}: {e}")
+
+        except Exception as e:
+            # Catch any unexpected errors and log them, so no message remains in queue
+            print(f"General error in event record: {e}")
