@@ -23,7 +23,7 @@ module "application" {
   region_name         = module.environment.default_region_name
   sqs_queue_arn       = module.environment.sqs_queue_arn
   sqs_queue_url       = module.environment.sqs_queue_url
-  image_uri           = "nginx:latest"  # Replace with your actual ECR URI
+  image_uri           = "236292171120.dkr.ecr.eu-north-1.amazonaws.com/set/setadvancedrepository:latest"
   environment         = "qa"
   application_port    = 8080
 }
