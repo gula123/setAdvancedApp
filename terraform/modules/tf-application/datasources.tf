@@ -39,7 +39,9 @@ data "aws_iam_policy_document" "lambda_policy" {
       "dynamodb:PutItem",
       "dynamodb:UpdateItem",
       "dynamodb:BatchWriteItem",
-      "dynamodb:BatchGetItem"
+      "dynamodb:BatchGetItem",
+      "dynamodb:Scan",
+      "dynamodb:Query"
     ]
     resources = ["arn:aws:dynamodb:${var.region_name}:${data.aws_caller_identity.current.account_id}:table/${var.dynamodb_table_name}"]
   }
