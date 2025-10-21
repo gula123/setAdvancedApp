@@ -8,7 +8,9 @@ from botocore.config import Config
 # Get environment variables
 dynamodb_table_name = os.environ.get('DYNAMODB_TABLE_NAME', 'setadvancedtable')
 s3_bucket_name = os.environ.get('S3_BUCKET_NAME', 'default-bucket')
-aws_region = os.environ.get('AWS_DEFAULT_REGION', 'eu-north-1')
+# AWS region is automatically detected by boto3 in Lambda environment
+# But we can override with our custom variable if needed
+aws_region = os.environ.get('APP_AWS_REGION', None)  # None lets boto3 auto-detect
 
 # Configure timeouts for AWS clients
 config = Config(
@@ -17,9 +19,10 @@ config = Config(
     retries={'max_attempts': 3}
 )
 
-s3 = boto3.client("s3", region_name=aws_region, config=config)
-rekognition = boto3.client("rekognition", region_name="eu-west-1", config=config)
-dynamodb = boto3.resource("dynamodb", region_name=aws_region, config=config)
+# Initialize AWS clients - boto3 auto-detects region in Lambda environment
+s3 = boto3.client("s3", config=config)
+rekognition = boto3.client("rekognition", region_name="eu-west-1", config=config)  # Keep hardcoded for Rekognition
+dynamodb = boto3.resource("dynamodb", config=config)
 table = dynamodb.Table(dynamodb_table_name)
 
 def is_image_file(key):

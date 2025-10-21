@@ -131,6 +131,10 @@ resource "aws_ecs_task_definition" "app_task" {
       {
         name  = "AWS_DEFAULT_REGION"
         value = var.region_name
+      },
+      {
+        name  = "SPRING_PROFILES_ACTIVE"
+        value = var.environment
       }
     ]
   }])
