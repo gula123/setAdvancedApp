@@ -9,13 +9,18 @@ output "dynamodb_table_name" {
 }
 
 output "default_subnet_ids" {
-  value       = [aws_default_subnet.default_subnet_a.id, aws_default_subnet.default_subnet_b.id]
-  description = "IDs of the default subnets"
+  value       = aws_subnet.public[*].id
+  description = "IDs of the public subnets"
+}
+
+output "private_subnet_ids" {
+  value       = aws_subnet.private[*].id
+  description = "IDs of the private subnets"
 }
 
 output "default_vpc_id" {
-  value       = data.aws_vpc.default.id
-  description = "ID of the default VPC"
+  value       = aws_vpc.main.id
+  description = "ID of the VPC"
 }
 
 output "default_region_name" {

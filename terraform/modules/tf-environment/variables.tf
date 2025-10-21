@@ -27,3 +27,9 @@ variable "environment" {
   description = "Environment name (dev, qa, prod)"
   default     = "dev"
 }
+
+variable "vpc_cidr_third_octet" {
+  type        = number
+  description = "Third octet for VPC CIDR (e.g., 1 for 10.1.0.0/16, 2 for 10.2.0.0/16)"
+  default     = 1
+}

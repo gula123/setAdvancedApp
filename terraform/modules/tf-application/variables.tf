@@ -10,7 +10,12 @@ variable "dynamodb_table_name" {
 
 variable "subnet_ids" {
   type        = list(string)
-  description = "List of subnet IDs for deployment"
+  description = "List of public subnet IDs for ALB"
+}
+
+variable "private_subnet_ids" {
+  type        = list(string)
+  description = "List of private subnet IDs for ECS tasks"
 }
 
 variable "vpc_id" {
