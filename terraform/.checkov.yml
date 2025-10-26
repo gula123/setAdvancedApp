@@ -1,0 +1,51 @@
+# Checkov Security Configuration
+# =================================
+# This file suppresses specific security checks that are intentional design decisions
+# or expensive optional features not required for this application.
+
+skip-check:
+  # ========================================================================
+  # INTENTIONAL DESIGN DECISIONS (Required for Application Functionality)
+  # ========================================================================
+  
+  # CKV_AWS_260: ALB Security Group allows HTTP (port 80)
+  # REASON: Required for HTTP-to-HTTPS redirect functionality
+  # IMPACT: ALB needs to accept HTTP traffic on port 80 to redirect users to HTTPS
+  # SECURITY: Traffic is immediately redirected to HTTPS, no data exposure
+  - CKV_AWS_260
+
+  # CKV_AWS_378: ALB Target Group uses HTTP protocol  
+  # REASON: Standard microservices pattern - ALB terminates SSL, forwards HTTP to containers
+  # IMPACT: ECS containers run HTTP internally (port 8080), ALB handles SSL termination
+  # SECURITY: Internal VPC traffic only, protected by security groups
+  - CKV_AWS_378
+
+  # CKV2_AWS_12: Default VPC Security Group allows traffic
+  # REASON: AWS default behavior, VPC is secured with custom security groups
+  # IMPACT: Default SG exists but isn't used by any resources
+  # SECURITY: All resources use custom security groups with proper restrictions
+  - CKV2_AWS_12
+
+  # ========================================================================
+  # EXPENSIVE OPTIONAL FEATURES (Cost vs. Benefit Analysis)
+  # ========================================================================
+  
+  # CKV_AWS_144: S3 Cross-Region Replication
+  # REASON: Expensive optional disaster recovery feature
+  # COST: Doubles storage costs + cross-region transfer fees
+  # IMPACT: Only needed for specific DR requirements or compliance mandates
+  # ALTERNATIVE: S3 versioning and backup strategies already implemented
+  - CKV_AWS_144
+
+# Configuration Options
+framework: terraform
+compact: true
+quiet: false
+
+# Optional: Suppress entire directories if needed
+# skip-path:
+#   - /legacy/
+#   - /temp/
+
+# Optional: Set severity threshold (LOW, MEDIUM, HIGH, CRITICAL)
+# check-threshold: HIGH

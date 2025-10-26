@@ -10,6 +10,80 @@ resource "aws_vpc" "main" {
   }
 }
 
+# CloudWatch Log Group for VPC Flow Logs
+resource "aws_cloudwatch_log_group" "vpc_flow_logs" {
+  name              = "/aws/vpc/flowlogs-${var.environment}"
+  retention_in_days = 365  # Retain logs for 1 year (Checkov requirement)
+  kms_key_id        = aws_kms_key.s3_key.arn  # Reuse S3 key for encryption
+
+  tags = {
+    Name        = "vpc-flow-logs-${var.environment}"
+    Environment = var.environment
+  }
+}
+
+# IAM role for VPC Flow Logs
+resource "aws_iam_role" "vpc_flow_logs_role" {
+  name = "vpc-flow-logs-role-${var.environment}"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "vpc-flow-logs.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = {
+    Name        = "vpc-flow-logs-role-${var.environment}"
+    Environment = var.environment
+  }
+}
+
+# IAM policy for VPC Flow Logs
+resource "aws_iam_role_policy" "vpc_flow_logs_policy" {
+  name = "vpc-flow-logs-policy-${var.environment}"
+  role = aws_iam_role.vpc_flow_logs_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+          "logs:DescribeLogGroups",
+          "logs:DescribeLogStreams"
+        ]
+        Effect   = "Allow"
+        Resource = [
+          "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:log-group:/aws/vpc/flowlogs-${var.environment}",
+          "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:log-group:/aws/vpc/flowlogs-${var.environment}:*"
+        ]
+      }
+    ]
+  })
+}
+
+# VPC Flow Logs
+resource "aws_flow_log" "vpc_flow_logs" {
+  iam_role_arn    = aws_iam_role.vpc_flow_logs_role.arn
+  log_destination = aws_cloudwatch_log_group.vpc_flow_logs.arn
+  traffic_type    = "ALL"
+  vpc_id          = aws_vpc.main.id
+
+  tags = {
+    Name        = "vpc-flow-logs-${var.environment}"
+    Environment = var.environment
+  }
+}
+
 # Internet Gateway
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
@@ -27,7 +101,7 @@ resource "aws_subnet" "public" {
   cidr_block        = "10.${var.vpc_cidr_third_octet}.${count.index}.0/24"
   availability_zone = data.aws_availability_zones.available.names[count.index]
   
-  map_public_ip_on_launch = true
+  map_public_ip_on_launch = false  # Security: Don't auto-assign public IPs
 
   tags = {
     Name        = "public-subnet-${var.environment}-${count.index + 1}"
@@ -122,21 +196,23 @@ resource "aws_route_table_association" "private" {
 # Security group for VPC endpoints
 resource "aws_security_group" "vpc_endpoints" {
   name        = "vpc-endpoints-${var.environment}"
-  description = "Security group for VPC endpoints"
+  description = "Security group for VPC endpoints access"
   vpc_id      = aws_vpc.main.id
 
   ingress {
-    description = "HTTPS from VPC"
+    description = "HTTPS from VPC for AWS service endpoints"
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
     cidr_blocks = [aws_vpc.main.cidr_block]
   }
 
+  # Restrict egress to only HTTPS for AWS services
   egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
+    description = "HTTPS to AWS services"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 

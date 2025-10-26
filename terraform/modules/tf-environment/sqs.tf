@@ -1,7 +1,9 @@
 # SQS queue for processing image notifications
 resource "aws_sqs_queue" "image_processing_queue" {
-  name       = var.sqs_name
-  fifo_queue = false
+  name                    = var.sqs_name
+  fifo_queue             = false
+  kms_master_key_id      = aws_kms_key.sqs_key.arn
+  kms_data_key_reuse_period_seconds = 300
 
   tags = {
     Name        = var.sqs_name

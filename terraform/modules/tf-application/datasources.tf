@@ -8,6 +8,9 @@ data "archive_file" "lambda_zip" {
 # Get AWS caller identity
 data "aws_caller_identity" "current" {}
 
+# Get current AWS region
+data "aws_region" "current" {}
+
 # IAM policy for Lambda execution role
 data "aws_iam_policy_document" "lambda_assume_role" {
   statement {
@@ -69,7 +72,46 @@ data "aws_iam_policy_document" "lambda_policy" {
       "logs:CreateLogStream",
       "logs:PutLogEvents"
     ]
-    resources = ["arn:aws:logs:*:*:*"]
+    resources = [
+      "arn:aws:logs:${var.region_name}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/*",
+      "arn:aws:logs:${var.region_name}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/*:*"
+    ]
+  }
+
+  # DLQ permissions
+  statement {
+    effect = "Allow"
+    actions = [
+      "sqs:SendMessage"
+    ]
+    resources = ["arn:aws:sqs:${var.region_name}:${data.aws_caller_identity.current.account_id}:lambda-dlq-${var.environment}"]
+  }
+
+  # VPC and ENI permissions for Lambda in VPC
+  statement {
+    effect = "Allow"
+    actions = [
+      "ec2:CreateNetworkInterface",
+      "ec2:DescribeNetworkInterfaces",
+      "ec2:DeleteNetworkInterface",
+      "ec2:AttachNetworkInterface",
+      "ec2:DetachNetworkInterface"
+    ]
+    resources = [
+      "arn:aws:ec2:${var.region_name}:${data.aws_caller_identity.current.account_id}:*"
+    ]
+  }
+
+  # X-Ray tracing permissions
+  statement {
+    effect = "Allow"
+    actions = [
+      "xray:PutTraceSegments",
+      "xray:PutTelemetryRecords"
+    ]
+    resources = [
+      "arn:aws:xray:${var.region_name}:${data.aws_caller_identity.current.account_id}:trace/*"
+    ]
   }
 }
 

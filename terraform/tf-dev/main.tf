@@ -22,12 +22,15 @@ module "application" {
   subnet_ids          = module.environment.default_subnet_ids
   private_subnet_ids  = module.environment.private_subnet_ids
   vpc_id              = module.environment.default_vpc_id
+  vpc_cidr            = module.environment.vpc_cidr
   region_name         = module.environment.default_region_name
   sqs_queue_arn       = module.environment.sqs_queue_arn
   sqs_queue_url       = module.environment.sqs_queue_url
+  sqs_kms_key_arn     = module.environment.sqs_kms_key_arn
   image_uri           = "236292171120.dkr.ecr.eu-north-1.amazonaws.com/set/setadvancedrepository:latest"
   environment         = "dev"
   application_port    = 8080
+  enable_https        = true
 }
 
 # Outputs

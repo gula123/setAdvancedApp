@@ -23,6 +23,11 @@ variable "vpc_id" {
   description = "VPC ID for deployment"
 }
 
+variable "vpc_cidr" {
+  type        = string
+  description = "VPC CIDR block"
+}
+
 variable "region_name" {
   type        = string
   description = "AWS region name"
@@ -45,7 +50,30 @@ variable "application_port" {
   default     = 8080
 }
 
+variable "domain_name" {
+  type        = string
+  description = "Domain name for SSL certificate (optional)"
+  default     = ""
+}
+
+variable "enable_https" {
+  type        = bool
+  description = "Enable HTTPS with SSL certificate"
+  default     = true
+}
+
 variable "sqs_queue_arn" {
   type        = string
   description = "ARN of the SQS queue"
+}
+
+variable "sqs_queue_url" {
+  type        = string
+  description = "URL of the SQS queue"
+}
+
+variable "sqs_kms_key_arn" {
+  type        = string
+  description = "ARN of the SQS KMS key"
+  default     = ""
 }

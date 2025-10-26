@@ -2,6 +2,11 @@
 resource "aws_ecs_cluster" "app_cluster" {
   name = "app-cluster-${var.environment}"
 
+  setting {
+    name  = "containerInsights"
+    value = "enabled"
+  }
+
   tags = {
     Name        = "app-cluster-${var.environment}"
     Environment = var.environment
@@ -11,7 +16,8 @@ resource "aws_ecs_cluster" "app_cluster" {
 # CloudWatch Log Group
 resource "aws_cloudwatch_log_group" "ecs_log_group" {
   name              = "/ecs/app-${var.environment}"
-  retention_in_days = 7
+  retention_in_days = 365  # Retain logs for 1 year (Checkov requirement)
+  kms_key_id        = aws_kms_key.cloudwatch_logs_key.arn
 
   tags = {
     Name        = "ecs-log-group-${var.environment}"
@@ -66,20 +72,43 @@ resource "aws_iam_role_policy_attachment" "ecs_task_dynamodb" {
 # Security Group for ECS Service
 resource "aws_security_group" "ecs_service_sg" {
   name_prefix = "ecs-service-${var.environment}"
+  description = "Security group for ECS service tasks"
   vpc_id      = var.vpc_id
 
+  # Allow inbound from ALB on application port
   ingress {
-    from_port   = 0
-    to_port     = 65535
+    description     = "HTTP from ALB"
+    from_port       = var.application_port
+    to_port         = var.application_port
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb_security_group.id]
+  }
+
+  # Allow HTTPS outbound for external APIs and services
+  egress {
+    description = "HTTPS outbound for external APIs"
+    from_port   = 443
+    to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # Allow HTTP outbound for AWS services
   egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
+    description = "HTTP outbound for AWS services"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Allow outbound to DynamoDB port (HTTPS)
+  egress {
+    description = "DynamoDB access"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr]
   }
 
   tags = {

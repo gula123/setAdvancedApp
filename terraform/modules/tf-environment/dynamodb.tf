@@ -7,6 +7,17 @@ resource "aws_dynamodb_table" "image_recognition_results" {
   hash_key       = "id"
   range_key      = "objectPath"
 
+  # Enable encryption at rest with customer-managed KMS key
+  server_side_encryption {
+    enabled     = true
+    kms_key_arn = aws_kms_key.dynamodb_key.arn
+  }
+
+  # Enable point-in-time recovery for backup
+  point_in_time_recovery {
+    enabled = true
+  }
+
   attribute {
     name = "id"
     type = "S"

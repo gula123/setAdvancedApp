@@ -1,6 +1,7 @@
 # SNS topic for image notifications
 resource "aws_sns_topic" "image_notification" {
-  name = var.sns_name
+  name              = var.sns_name
+  kms_master_key_id = aws_kms_key.sns_key.arn
 
   tags = {
     Name        = var.sns_name
