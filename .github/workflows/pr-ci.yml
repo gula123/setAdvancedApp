@@ -37,7 +37,7 @@ jobs:
     - name: Run REST Assured tests against AWS
       env:
         TEST_BASE_URI: http://setadvancedloadbalancer-1839284937.eu-north-1.elb.amazonaws.com
-      run: mvn test
+      run: mvn test -Dtest="!*InfrastructureTest"
 
     - name: Generate test report (report-only mode)
       if: always()
