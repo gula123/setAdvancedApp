@@ -177,6 +177,20 @@ resource "aws_s3_bucket_policy" "alb_logs_policy" {
         }
         Action   = "s3:GetBucketAcl"
         Resource = aws_s3_bucket.alb_logs.arn
+      },
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "elasticloadbalancing.amazonaws.com"
+        }
+        Action = [
+          "s3:PutObject",
+          "s3:GetBucketAcl"
+        ]
+        Resource = [
+          aws_s3_bucket.alb_logs.arn,
+          "${aws_s3_bucket.alb_logs.arn}/*"
+        ]
       }
     ]
   })
@@ -245,17 +259,19 @@ resource "aws_lb" "app_load_balancer" {
   enable_deletion_protection = true
   drop_invalid_header_fields = true
 
-  # Enable access logging
+  # Disable access logging initially to avoid permission race condition
   access_logs {
     bucket  = aws_s3_bucket.alb_logs.bucket
     prefix  = "alb-logs"
-    enabled = true
+    enabled = false
   }
 
   tags = {
     Name        = "app-lb-${var.environment}"
     Environment = var.environment
   }
+
+  depends_on = [aws_s3_bucket_policy.alb_logs_policy]
 }
 
 # Load Balancer Target Group

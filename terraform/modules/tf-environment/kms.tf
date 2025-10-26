@@ -19,6 +19,22 @@ resource "aws_kms_key" "dynamodb_key" {
         Resource = "*"
       },
       {
+        Sid    = "Allow ECS Task Role"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ecs-task-role-${var.environment}"
+        }
+        Action = [
+          "kms:Encrypt",
+          "kms:Decrypt",
+          "kms:ReEncrypt*",
+          "kms:GenerateDataKey*",
+          "kms:CreateGrant",
+          "kms:DescribeKey"
+        ]
+        Resource = "*"
+      },
+      {
         Sid    = "Allow DynamoDB Service"
         Effect = "Allow"
         Principal = {
@@ -64,6 +80,26 @@ resource "aws_kms_key" "sns_key" {
         }
         Action   = "kms:*"
         Resource = "*"
+      },
+      {
+        Sid    = "Allow S3 Service"
+        Effect = "Allow"
+        Principal = {
+          Service = "s3.amazonaws.com"
+        }
+        Action = [
+          "kms:Encrypt",
+          "kms:Decrypt",
+          "kms:ReEncrypt*",
+          "kms:GenerateDataKey*",
+          "kms:DescribeKey"
+        ]
+        Resource = "*"
+        Condition = {
+          StringEquals = {
+            "kms:ViaService" = "sns.${data.aws_region.current.name}.amazonaws.com"
+          }
+        }
       },
       {
         Sid    = "Allow SNS Service"
@@ -112,6 +148,26 @@ resource "aws_kms_key" "sqs_key" {
         Resource = "*"
       },
       {
+        Sid    = "Allow SNS Service"
+        Effect = "Allow"
+        Principal = {
+          Service = "sns.amazonaws.com"
+        }
+        Action = [
+          "kms:Encrypt",
+          "kms:Decrypt",
+          "kms:ReEncrypt*",
+          "kms:GenerateDataKey*",
+          "kms:DescribeKey"
+        ]
+        Resource = "*"
+        Condition = {
+          StringEquals = {
+            "kms:ViaService" = "sqs.${data.aws_region.current.name}.amazonaws.com"
+          }
+        }
+      },
+      {
         Sid    = "Allow SQS Service"
         Effect = "Allow"
         Principal = {
@@ -158,6 +214,22 @@ resource "aws_kms_key" "s3_key" {
         Resource = "*"
       },
       {
+        Sid    = "Allow ECS Task Role"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ecs-task-role-${var.environment}"
+        }
+        Action = [
+          "kms:Encrypt",
+          "kms:Decrypt",
+          "kms:ReEncrypt*",
+          "kms:GenerateDataKey*",
+          "kms:CreateGrant",
+          "kms:DescribeKey"
+        ]
+        Resource = "*"
+      },
+      {
         Sid    = "Allow S3 Service"
         Effect = "Allow"
         Principal = {
@@ -174,6 +246,26 @@ resource "aws_kms_key" "s3_key" {
         Condition = {
           StringEquals = {
             "kms:ViaService" = "s3.${data.aws_region.current.name}.amazonaws.com"
+          }
+        }
+      },
+      {
+        Sid    = "Allow CloudWatch Logs"
+        Effect = "Allow"
+        Principal = {
+          Service = "logs.${data.aws_region.current.name}.amazonaws.com"
+        }
+        Action = [
+          "kms:Encrypt",
+          "kms:Decrypt",
+          "kms:ReEncrypt*",
+          "kms:GenerateDataKey*",
+          "kms:DescribeKey"
+        ]
+        Resource = "*"
+        Condition = {
+          ArnLike = {
+            "kms:EncryptionContext:aws:logs:arn" = "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:log-group:*"
           }
         }
       }

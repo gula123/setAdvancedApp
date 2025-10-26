@@ -27,10 +27,12 @@ module "application" {
   sqs_queue_arn       = module.environment.sqs_queue_arn
   sqs_queue_url       = module.environment.sqs_queue_url
   sqs_kms_key_arn     = module.environment.sqs_kms_key_arn
+  dynamodb_kms_key_arn = module.environment.dynamodb_kms_key_arn
+  s3_kms_key_arn      = module.environment.s3_kms_key_arn
   image_uri           = "236292171120.dkr.ecr.eu-north-1.amazonaws.com/set/setadvancedrepository:latest"
   environment         = "prod"
   application_port    = 8080
-  enable_https        = true
+  enable_https        = false
 }
 
 # Outputs

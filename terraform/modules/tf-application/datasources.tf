@@ -78,6 +78,32 @@ data "aws_iam_policy_document" "lambda_policy" {
     ]
   }
 
+  statement {
+    effect = "Allow"
+    actions = [
+      "kms:Decrypt",
+      "kms:GenerateDataKey*"
+    ]
+    resources = [
+      var.sqs_kms_key_arn,
+      var.dynamodb_kms_key_arn,
+      var.s3_kms_key_arn
+    ]
+  }
+
+  # EC2 permissions for VPC Lambda functions
+  statement {
+    effect = "Allow"
+    actions = [
+      "ec2:CreateNetworkInterface",
+      "ec2:DescribeNetworkInterfaces",
+      "ec2:DeleteNetworkInterface",
+      "ec2:AttachNetworkInterface",
+      "ec2:DetachNetworkInterface"
+    ]
+    resources = ["*"]
+  }
+
   # DLQ permissions
   statement {
     effect = "Allow"

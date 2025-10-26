@@ -77,3 +77,15 @@ variable "sqs_kms_key_arn" {
   description = "ARN of the SQS KMS key"
   default     = ""
 }
+
+variable "dynamodb_kms_key_arn" {
+  type        = string
+  description = "ARN of the DynamoDB KMS key"
+  default     = ""
+}
+
+variable "s3_kms_key_arn" {
+  type        = string
+  description = "ARN of the S3 KMS key"
+  default     = ""
+}

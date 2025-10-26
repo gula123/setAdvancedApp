@@ -67,7 +67,7 @@ resource "aws_lambda_function" "image_processing_lambda" {
   timeout         = 30
   
   # Set concurrent execution limit
-  reserved_concurrent_executions = 10
+  # reserved_concurrent_executions = 1  # Disabled for demo accounts
   
   # Code signing configuration (commented out for demo)
   # code_signing_config_arn = aws_lambda_code_signing_config.code_signing_config.arn
