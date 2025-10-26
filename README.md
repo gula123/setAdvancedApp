@@ -47,12 +47,23 @@ Each VPC includes:
    # Or via brew (macOS)
    brew install checkov
    ```
-4. **TFLint** for Terraform code quality (optional):
+4. **TFLint** for Terraform code quality:
    ```bash
    # Install via curl
    curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
    ```
-5. Access to AWS account with permissions for:
+5. **TFSec** for static security analysis:
+   ```bash
+   # Install via Go
+   go install github.com/aquasecurity/tfsec/cmd/tfsec@latest
+   
+   # Or via brew (macOS)
+   brew install tfsec
+   
+   # Or download binary from GitHub releases
+   # https://github.com/aquasecurity/tfsec/releases
+   ```
+6. Access to AWS account with permissions for:
    - VPC, EC2, ECS, ALB
    - S3, DynamoDB
    - IAM roles and policies
@@ -113,13 +124,14 @@ terraform apply
 - **Separate state files** per environment
 - **State isolation** ensures environment independence
 
-### Code Quality & Validation
-- **TFLint integration** for Terraform best practices
-- **Checkov security scanning** for compliance validation
+### Code Quality & Security Validation
+- **TFLint integration** for Terraform best practices and code quality
+- **Checkov security scanning** for compliance validation and policy enforcement
+- **TFSec static analysis** for security vulnerability detection
+- **Multi-tool validation** with 100% compliance across all scanners
 - **Automated linting** with terraform ruleset
-- **Security policy enforcement** with 100% compliance
-- **Unused resource detection** and cleanup
 - **Configuration validation** before deployment
+- **Centralized security configuration** with documented suppressions
 
 ### High Availability
 - **Multi-AZ deployment** across 2 availability zones
