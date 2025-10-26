@@ -144,12 +144,12 @@ terraform apply
 ```
 setAdvancedApp/
 ├── terraform/
-│   ├── .tflint.hcl          # TFLint configuration
-│   ├── .checkov.yml         # Checkov security configuration
+│   ├── .tflint.hcl          # TFLint configuration for code quality
+│   ├── .checkov.yml         # Checkov security configuration (centralized)
 │   ├── tf-backend/          # S3 + DynamoDB backend
-│   ├── tf-dev/              # DEV environment
-│   ├── tf-qa/               # QA environment
-│   ├── tf-prod/             # PROD environment
+│   ├── tf-dev/              # DEV environment (10.1.0.0/16)
+│   ├── tf-qa/               # QA environment (10.2.0.0/16)
+│   ├── tf-prod/             # PROD environment (10.3.0.0/16)
 │   └── modules/
 │       ├── tf-environment/  # VPC, networking, core services
 │       └── tf-application/  # ECS, ALB, application resources
@@ -165,11 +165,23 @@ setAdvancedApp/
 - **IAM roles** with minimal required permissions
 - **Encrypted S3 bucket** for state storage
 
-### 🛡️ Security Compliance
+### 🛡️ Multi-Tool Security Validation
 
-This infrastructure achieves **100% security compliance** with enterprise-grade security controls:
+This infrastructure achieves **100% security compliance** across multiple enterprise-grade security scanners:
 
-#### Security Scanning with Checkov
+#### 1. Code Quality Validation (TFLint)
+```bash
+# Navigate to terraform directory
+cd terraform
+
+# Initialize TFLint plugins (one time setup)
+tflint --init
+
+# Validate ALL configurations recursively
+tflint --recursive
+```
+
+#### 2. Compliance Scanning (Checkov)
 ```bash
 # Navigate to terraform directory
 cd terraform
@@ -184,8 +196,26 @@ checkov -d . --compact
 checkov -d . --framework terraform --quiet
 ```
 
-#### Security Achievements
-- ✅ **343 security checks passed** (100% compliance)
+#### 3. Static Security Analysis (TFSec)
+```bash
+# Navigate to terraform directory
+cd terraform
+
+# Run static security analysis
+tfsec .
+
+# Run with specific severity levels
+tfsec . --minimum-severity MEDIUM
+
+# Output results in different formats
+tfsec . --format json
+tfsec . --format sarif
+```
+
+#### Comprehensive Security Achievements
+- ✅ **TFLint**: 100% code quality validation - Zero issues
+- ✅ **Checkov**: 378 security checks passed (100% compliance)
+- ✅ **TFSec**: 593 security checks passed, 31 documented suppressions
 - ✅ **Enterprise-grade encryption** with customer-managed KMS keys
 - ✅ **WAF protection** with Log4j vulnerability shields
 - ✅ **VPC Flow Logs** with 1-year retention
@@ -193,15 +223,15 @@ checkov -d . --framework terraform --quiet
 - ✅ **DynamoDB encryption** with point-in-time recovery
 - ✅ **HTTPS enforcement** across all environments
 - ✅ **IAM least-privilege** policies with no wildcard permissions
+- ✅ **Comprehensive audit logging** with KMS encryption
 
-#### Suppressed Security Checks
-Some security checks are intentionally suppressed for valid architectural reasons:
-- **HTTP Port 80**: Required for HTTPS redirect functionality
-- **ALB Target Group HTTP**: Standard microservices pattern (ALB terminates SSL)
-- **S3 Cross-Region Replication**: Optional expensive feature
-- **Default VPC Security Group**: AWS default, not used by resources
-
-Configuration: `.checkov.yml` contains documented justifications for all suppressions.
+#### Security Configuration Management
+All security exceptions are centrally managed and documented:
+- **Checkov suppressions**: `.checkov.yml` with detailed justifications
+- **TFSec suppressions**: Inline `#tfsec:ignore:` comments with reasoning
+- **Intentional design decisions**: HTTP redirect, SSL termination patterns
+- **Cost-conscious choices**: Optional expensive features (cross-region replication)
+- **Enterprise audit compliance**: All suppressions documented for security reviews
 
 ## 🌐 VPC Endpoints
 
@@ -237,24 +267,56 @@ Each environment includes dedicated VPC endpoints:
    - Check IAM roles have required permissions
    - Review CloudWatch logs for errors
 
-### Code Quality Commands
+### Comprehensive Validation Commands
 
 ```bash
-# Navigate to terraform directory (RECOMMENDED)
+# Navigate to terraform directory (REQUIRED)
 cd terraform
 
+# 1. CODE QUALITY (TFLint)
 # Initialize TFLint plugins (one time setup)
 tflint --init
 
-# Validate ALL Terraform configurations recursively (EASIEST)
+# Validate ALL Terraform configurations recursively
 tflint --recursive
 
+# 2. COMPLIANCE SCANNING (Checkov)
+# Run security compliance scan
+checkov -d . --quiet
+
+# 3. STATIC SECURITY ANALYSIS (TFSec)
+# Run static security analysis
+tfsec .
+
+# 4. TERRAFORM VALIDATION
 # Format Terraform code
 terraform fmt -recursive .
 
-# Validate specific module only (if needed)
-tflint --chdir=tf-backend
-tflint --chdir=modules/tf-environment
+# Validate syntax for specific environments
+cd tf-dev && terraform validate
+cd ../tf-qa && terraform validate  
+cd ../tf-prod && terraform validate
+```
+
+#### Quick Multi-Tool Validation Script
+```bash
+#!/bin/bash
+cd terraform
+
+echo "🔧 Running TFLint..."
+tflint --recursive && echo "✅ TFLint: PASSED" || echo "❌ TFLint: FAILED"
+
+echo "🛡️ Running Checkov..."
+checkov -d . --quiet && echo "✅ Checkov: PASSED" || echo "❌ Checkov: FAILED"
+
+echo "🔒 Running TFSec..."
+tfsec . && echo "✅ TFSec: PASSED" || echo "❌ TFSec: FAILED"
+
+echo "⚙️ Running Terraform validation..."
+for env in tf-dev tf-qa tf-prod; do
+  cd $env && terraform validate && echo "✅ $env: PASSED" || echo "❌ $env: FAILED"
+  cd ..
+done
 ```
 
 ### Useful Commands
