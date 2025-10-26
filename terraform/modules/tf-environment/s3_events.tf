@@ -1,6 +1,3 @@
-# Data source for current AWS account
-data "aws_caller_identity" "current" {}
-
 # SNS topic for S3 event notifications
 resource "aws_sns_topic" "s3_events" {
   name              = "s3-events-${var.environment}"
@@ -34,21 +31,6 @@ resource "aws_sns_topic_policy" "s3_events_policy" {
       }
     ]
   })
-}
-
-# S3 event notification for image bucket
-resource "aws_s3_bucket_notification" "image_bucket_notification" {
-  bucket = aws_s3_bucket.image_bucket.id
-
-  topic {
-    topic_arn = aws_sns_topic.s3_events.arn
-    events = [
-      "s3:ObjectCreated:*",
-      "s3:ObjectRemoved:*"
-    ]
-  }
-
-  depends_on = [aws_sns_topic_policy.s3_events_policy]
 }
 
 # S3 event notification for access logs bucket

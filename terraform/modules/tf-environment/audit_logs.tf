@@ -38,14 +38,6 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "environment_audit
   }
 }
 
-# Enable versioning for environment audit logs bucket
-resource "aws_s3_bucket_versioning" "environment_audit_logs_versioning" {
-  bucket = aws_s3_bucket.environment_audit_logs.id
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
-
 # Lifecycle configuration for environment audit logs bucket
 resource "aws_s3_bucket_lifecycle_configuration" "environment_audit_logs_lifecycle" {
   bucket = aws_s3_bucket.environment_audit_logs.id
@@ -53,6 +45,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "environment_audit_logs_lifecyc
   rule {
     id     = "environment_audit_logs_lifecycle"
     status = "Enabled"
+
+    filter {}
 
     expiration {
       days = 365

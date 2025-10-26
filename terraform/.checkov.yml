@@ -44,6 +44,13 @@ skip-check:
   # ALTERNATIVE: CloudTrail and access logging provide sufficient audit trail
   - CKV2_AWS_62
 
+  # CKV_AWS_272: Lambda Code Signing Configuration
+  # REASON: Code signing requires AWS Signer service and signing profiles
+  # IMPACT: Lambda functions run without code signing validation
+  # ALTERNATIVES: CI/CD pipeline provides code integrity validation
+  # COST: AWS Signer service incurs additional costs for signing operations
+  - CKV_AWS_272
+
 # Configuration Options
 framework: terraform
 compact: true

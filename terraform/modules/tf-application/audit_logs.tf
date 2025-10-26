@@ -50,6 +50,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "audit_logs_lifecycle" {
     id     = "audit_logs_lifecycle"
     status = "Enabled"
 
+    filter {}
+
     expiration {
       days = 365  # Keep audit logs for 1 year
     }

@@ -33,9 +33,6 @@ resource "aws_sns_topic_policy" "alb_s3_events_policy" {
   })
 }
 
-# Data source for current AWS account
-data "aws_caller_identity" "current" {}
-
 # S3 event notification for ALB logs bucket
 resource "aws_s3_bucket_notification" "alb_logs_notification" {
   bucket = aws_s3_bucket.alb_logs.id

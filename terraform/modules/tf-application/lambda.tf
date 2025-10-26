@@ -35,25 +35,26 @@ resource "aws_sqs_queue" "lambda_dlq" {
 }
 
 # Lambda code signing configuration (optional for enhanced security)
-resource "aws_lambda_code_signing_config" "code_signing_config" {
-  allowed_publishers {
-    signing_profile_version_arns = [
-      # This would be your signing profile ARN in production
-      # For demo purposes, we'll allow unsigned code
-    ]
-  }
-
-  policies {
-    untrusted_artifact_on_deployment = "Warn"  # Allow deployment but warn
-  }
-
-  description = "Code signing configuration for ${var.environment}"
-
-  tags = {
-    Name        = "lambda-code-signing-${var.environment}"
-    Environment = var.environment
-  }
-}
+# Commented out as it requires signing profile ARNs which are not needed for demo
+# resource "aws_lambda_code_signing_config" "code_signing_config" {
+#   allowed_publishers {
+#     signing_profile_version_arns = [
+#       # This would be your signing profile ARN in production
+#       # For demo purposes, we'll allow unsigned code
+#     ]
+#   }
+#
+#   policies {
+#     untrusted_artifact_on_deployment = "Warn"  # Allow deployment but warn
+#   }
+#
+#   description = "Code signing configuration for ${var.environment}"
+#
+#   tags = {
+#     Name        = "lambda-code-signing-${var.environment}"
+#     Environment = var.environment
+#   }
+# }
 
 # Lambda function
 resource "aws_lambda_function" "image_processing_lambda" {
@@ -68,8 +69,8 @@ resource "aws_lambda_function" "image_processing_lambda" {
   # Set concurrent execution limit
   reserved_concurrent_executions = 10
   
-  # Code signing configuration
-  code_signing_config_arn = aws_lambda_code_signing_config.code_signing_config.arn
+  # Code signing configuration (commented out for demo)
+  # code_signing_config_arn = aws_lambda_code_signing_config.code_signing_config.arn
   
   # Configure Dead Letter Queue
   dead_letter_config {

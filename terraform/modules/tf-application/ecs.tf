@@ -197,7 +197,7 @@ resource "aws_ecs_service" "app_service" {
     container_port   = var.application_port
   }
 
-  depends_on = [aws_lb_listener.app_listener]
+  depends_on = [aws_lb_listener.app_listener_http]
 
   tags = {
     Name        = "app-service-${var.environment}"

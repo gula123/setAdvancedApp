@@ -59,6 +59,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "image_bucket_lifecycle" {
     id     = "delete_old_versions"
     status = "Enabled"
 
+    filter {}
+
     noncurrent_version_expiration {
       noncurrent_days = 30
     }
@@ -124,6 +126,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "access_logs_lifecycle" {
   rule {
     id     = "delete_old_access_logs"
     status = "Enabled"
+
+    filter {}
 
     expiration {
       days = 90

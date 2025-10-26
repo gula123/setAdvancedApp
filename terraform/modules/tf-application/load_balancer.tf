@@ -66,6 +66,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "alb_logs_access_logs_lifecycle
     id     = "delete_old_access_logs"
     status = "Enabled"
 
+    filter {}
+
     expiration {
       days = 90
     }
@@ -126,6 +128,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "alb_logs_lifecycle" {
     id     = "delete_old_logs"
     status = "Enabled"
 
+    filter {}
+
     expiration {
       days = 90
     }
@@ -177,8 +181,6 @@ resource "aws_s3_bucket_policy" "alb_logs_policy" {
     ]
   })
 }
-
-data "aws_caller_identity" "current" {}
 
 # Security Group for Application Load Balancer
 resource "aws_security_group" "alb_security_group" {

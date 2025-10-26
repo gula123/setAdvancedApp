@@ -1,9 +1,5 @@
 # KMS Keys for encryption
 
-# Data sources
-data "aws_caller_identity" "current" {}
-data "aws_region" "current" {}
-
 # KMS key for DynamoDB encryption
 resource "aws_kms_key" "dynamodb_key" {
   description             = "KMS key for DynamoDB encryption in ${var.environment} environment"
