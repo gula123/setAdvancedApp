@@ -208,6 +208,7 @@ resource "aws_security_group" "vpc_endpoints" {
   }
 
   # Restrict egress to only HTTPS for AWS services
+  #tfsec:ignore:aws-ec2-no-public-egress-sgr
   egress {
     description = "HTTPS to AWS services"
     from_port   = 443

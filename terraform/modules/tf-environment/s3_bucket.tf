@@ -1,4 +1,5 @@
 # S3 bucket for storing images
+#checkov:skip=CKV_AWS_144:Cross-region replication not required for image bucket in development environment
 resource "aws_s3_bucket" "image_bucket" {
   bucket = var.bucket_name
 
@@ -106,6 +107,14 @@ resource "aws_s3_bucket_versioning" "access_logs_versioning" {
   versioning_configuration {
     status = "Enabled"
   }
+}
+
+# Enable logging for access logs bucket
+resource "aws_s3_bucket_logging" "access_logs_logging" {
+  bucket = aws_s3_bucket.access_logs.id
+
+  target_bucket = aws_s3_bucket.environment_audit_logs.id
+  target_prefix = "s3-access-logs/"
 }
 
 # S3 bucket lifecycle configuration for access logs

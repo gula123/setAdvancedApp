@@ -50,6 +50,14 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "alb_logs_access_l
   }
 }
 
+# Enable logging for ALB logs access logs bucket
+resource "aws_s3_bucket_logging" "alb_logs_access_logs_logging" {
+  bucket = aws_s3_bucket.alb_logs_access_logs.id
+
+  target_bucket = aws_s3_bucket.audit_logs.id
+  target_prefix = "alb-access-logs/"
+}
+
 # Lifecycle configuration for ALB logs access logs bucket
 resource "aws_s3_bucket_lifecycle_configuration" "alb_logs_access_logs_lifecycle" {
   bucket = aws_s3_bucket.alb_logs_access_logs.id
@@ -179,6 +187,7 @@ resource "aws_security_group" "alb_security_group" {
   description = "Security group for Application Load Balancer"
 
   # Allow HTTP traffic from internet (for redirect to HTTPS)
+  #tfsec:ignore:aws-ec2-no-public-ingress-sgr
   ingress {
     description = "HTTP from internet for redirect"
     from_port   = 80
@@ -188,6 +197,7 @@ resource "aws_security_group" "alb_security_group" {
   }
 
   # Allow HTTPS traffic from internet
+  #tfsec:ignore:aws-ec2-no-public-ingress-sgr
   ingress {
     description = "HTTPS from internet"
     from_port   = 443
@@ -206,6 +216,7 @@ resource "aws_security_group" "alb_security_group" {
   }
 
   # Allow HTTPS outbound for health checks and external APIs
+  #tfsec:ignore:aws-ec2-no-public-egress-sgr
   egress {
     description = "HTTPS outbound"
     from_port   = 443
@@ -221,6 +232,7 @@ resource "aws_security_group" "alb_security_group" {
 }
 
 # Application Load Balancer
+#tfsec:ignore:aws-elb-alb-not-public
 resource "aws_lb" "app_load_balancer" {
   name               = "app-lb-${var.environment}"
   internal           = false

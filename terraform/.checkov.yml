@@ -37,6 +37,13 @@ skip-check:
   # ALTERNATIVE: S3 versioning and backup strategies already implemented
   - CKV_AWS_144
 
+  # CKV2_AWS_62: S3 Event Notifications for Audit Logging Buckets
+  # REASON: Event notifications not required for audit logging buckets
+  # COST: Additional SNS/SQS costs for notifications on every log file
+  # IMPACT: Audit logs are write-only storage, notifications add complexity without benefit
+  # ALTERNATIVE: CloudTrail and access logging provide sufficient audit trail
+  - CKV2_AWS_62
+
 # Configuration Options
 framework: terraform
 compact: true

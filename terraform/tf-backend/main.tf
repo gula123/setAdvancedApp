@@ -183,6 +183,72 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "terraform_state_a
   }
 }
 
+# Central audit logging bucket for terraform backend
+#tfsec:ignore:aws-s3-enable-bucket-logging
+resource "aws_s3_bucket" "backend_audit_logs" {
+  bucket        = "${var.state_bucket_name}-backend-audit"
+  force_destroy = true
+
+  tags = {
+    Name        = "Backend Audit Logs"
+    Purpose     = "terraform-backend-audit-logging"
+    Environment = "shared"
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "backend_audit_logs_pab" {
+  bucket = aws_s3_bucket.backend_audit_logs.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_versioning" "backend_audit_logs_versioning" {
+  bucket = aws_s3_bucket.backend_audit_logs.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "backend_audit_logs_lifecycle" {
+  bucket = aws_s3_bucket.backend_audit_logs.id
+
+  rule {
+    id     = "backend_audit_logs_lifecycle"
+    status = "Enabled"
+
+    expiration {
+      days = 365
+    }
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "backend_audit_logs_encryption" {
+  bucket = aws_s3_bucket.backend_audit_logs.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm     = "aws:kms"
+      kms_master_key_id = aws_kms_key.s3_backend_key.arn
+    }
+    bucket_key_enabled = true
+  }
+}
+
+# Enable logging for terraform state access logs bucket
+resource "aws_s3_bucket_logging" "terraform_state_access_logs_logging" {
+  bucket = aws_s3_bucket.terraform_state_access_logs.id
+
+  target_bucket = aws_s3_bucket.backend_audit_logs.id
+  target_prefix = "terraform-access-logs/"
+}
+
 # Lifecycle configuration for terraform state access logs bucket
 resource "aws_s3_bucket_lifecycle_configuration" "terraform_state_access_logs_lifecycle" {
   bucket = aws_s3_bucket.terraform_state_access_logs.id

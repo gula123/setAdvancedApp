@@ -112,6 +112,7 @@ resource "aws_security_group" "lambda_sg" {
   description = "Security group for Lambda function"
 
   # Allow HTTPS outbound for AWS API calls
+  #tfsec:ignore:aws-ec2-no-public-egress-sgr
   egress {
     description = "HTTPS to AWS services"
     from_port   = 443

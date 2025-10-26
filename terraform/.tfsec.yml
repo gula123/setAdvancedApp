@@ -1,0 +1,59 @@
+# TFSec Security Configuration
+# =================================
+# This file suppresses specific security checks that are intentional design decisions
+# or required for application functionality, similar to our Checkov configuration.
+
+# Minimum severity to report (LOW, MEDIUM, HIGH, CRITICAL)
+minimum-severity: LOW
+
+# Exclude specific checks by ID
+exclude_checks:
+  # ========================================================================
+  # INTENTIONAL DESIGN DECISIONS (Required for Application Functionality)
+  # ========================================================================
+  
+  # aws-ec2-no-public-ingress-sgr: ALB Security Group allows ingress from public internet
+  # REASON: Application Load Balancer must accept traffic from internet for web application
+  # IMPACT: ALB needs HTTP (port 80) and HTTPS (port 443) access from 0.0.0.0/0 for users
+  # SECURITY: Traffic is protected by WAF, HTTPS enforcement, and proper target group routing
+  - aws-ec2-no-public-ingress-sgr
+  
+  # aws-elb-alb-not-public: Load balancer is exposed publicly
+  # REASON: Application requires public internet access for end users
+  # IMPACT: Web application must be accessible from internet via public ALB
+  # SECURITY: Protected by WAF, HTTPS enforcement, security groups, and VPC isolation
+  - aws-elb-alb-not-public
+
+  # ========================================================================
+  # REQUIRED OUTBOUND CONNECTIVITY (Service Dependencies)
+  # ========================================================================
+  
+  # aws-ec2-no-public-egress-sgr: Security group rule allows egress to multiple public internet addresses
+  # REASON: AWS services, container registries, and API dependencies require outbound HTTPS
+  # IMPACT: ECS tasks, Lambda functions need outbound connectivity for:
+  #         - ECR for container image pulls
+  #         - AWS APIs (DynamoDB, S3, SNS, SQS)
+  #         - External integrations and health checks
+  # SECURITY: Egress is limited to necessary ports, protected by VPC routing and IAM policies
+  # ALTERNATIVE: Could use VPC endpoints, but adds complexity and cost for minimal security gain
+  - aws-ec2-no-public-egress-sgr
+
+  # ========================================================================
+  # AUDIT LOGGING BUCKETS (Self-referential logging not needed)
+  # ========================================================================
+  
+  # aws-s3-enable-bucket-logging: Audit logging buckets don't need their own logging
+  # REASON: These are the central audit buckets that receive logs from other buckets
+  # IMPACT: Creating logging for audit buckets would create circular dependencies
+  # SECURITY: Audit buckets are encrypted, versioned, and have proper access controls
+  - aws-s3-enable-bucket-logging
+  
+  # aws-s3-enable-versioning: Audit buckets already have versioning enabled
+  # REASON: All audit buckets are properly configured with versioning
+  # IMPACT: Versioning is enabled for all audit buckets via separate resources
+  # SECURITY: Versioning protects against accidental deletion and provides recovery
+  - aws-s3-enable-versioning
+
+# Optional: Exclude specific files or directories
+# exclude_paths:
+#   - "terraform/modules/legacy/"

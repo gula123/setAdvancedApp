@@ -85,6 +85,7 @@ resource "aws_security_group" "ecs_service_sg" {
   }
 
   # Allow HTTPS outbound for external APIs and services
+  #tfsec:ignore:aws-ec2-no-public-egress-sgr
   egress {
     description = "HTTPS outbound for external APIs"
     from_port   = 443
@@ -94,6 +95,7 @@ resource "aws_security_group" "ecs_service_sg" {
   }
 
   # Allow HTTP outbound for AWS services
+  #tfsec:ignore:aws-ec2-no-public-egress-sgr
   egress {
     description = "HTTP outbound for AWS services"
     from_port   = 80
