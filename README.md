@@ -97,6 +97,12 @@ terraform apply
 - **Separate state files** per environment
 - **State isolation** ensures environment independence
 
+### Code Quality & Validation
+- **TFLint integration** for Terraform best practices
+- **Automated linting** with terraform ruleset
+- **Unused resource detection** and cleanup
+- **Configuration validation** before deployment
+
 ### High Availability
 - **Multi-AZ deployment** across 2 availability zones
 - **Auto Scaling** ECS service with desired capacity
@@ -108,6 +114,7 @@ terraform apply
 ```
 setAdvancedApp/
 ├── terraform/
+│   ├── .tflint.hcl          # TFLint configuration
 │   ├── tf-backend/          # S3 + DynamoDB backend
 │   ├── tf-dev/              # DEV environment
 │   ├── tf-qa/               # QA environment
@@ -160,6 +167,26 @@ Each environment includes dedicated VPC endpoints:
    - Verify VPC endpoints are accessible
    - Check IAM roles have required permissions
    - Review CloudWatch logs for errors
+
+### Code Quality Commands
+
+```bash
+# Navigate to terraform directory (RECOMMENDED)
+cd terraform
+
+# Initialize TFLint plugins (one time setup)
+tflint --init
+
+# Validate ALL Terraform configurations recursively (EASIEST)
+tflint --recursive
+
+# Format Terraform code
+terraform fmt -recursive .
+
+# Validate specific module only (if needed)
+tflint --chdir=tf-backend
+tflint --chdir=modules/tf-environment
+```
 
 ### Useful Commands
 

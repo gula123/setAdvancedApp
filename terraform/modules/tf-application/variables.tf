@@ -49,8 +49,3 @@ variable "sqs_queue_arn" {
   type        = string
   description = "ARN of the SQS queue"
 }
-
-variable "sqs_queue_url" {
-  type        = string
-  description = "URL of the SQS queue"
-}

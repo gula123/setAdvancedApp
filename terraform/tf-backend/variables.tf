@@ -15,9 +15,3 @@ variable "dynamodb_table_name" {
   description = "Name of the DynamoDB table for state locking"
   default     = "terraform-state-lock"
 }
-
-variable "project_name" {
-  type        = string
-  description = "Name of the project"
-  default     = "setadvanced"
-}
