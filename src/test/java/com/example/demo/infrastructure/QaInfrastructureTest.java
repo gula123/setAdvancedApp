@@ -53,7 +53,8 @@ public class QaInfrastructureTest {
             
             System.out.println("✅ S3 Bucket '" + S3_BUCKET_NAME + "' is accessible");
         } catch (Exception e) {
-            fail("❌ S3 Bucket test failed: " + e.getMessage());
+            System.err.println("Failed to validate S3 Bucket: " + e.getMessage());
+            fail("S3 Bucket health check failed: " + e.getMessage());
         }
     }
 
@@ -73,6 +74,9 @@ public class QaInfrastructureTest {
                     "DynamoDB table should be in ACTIVE status");
             
             System.out.println("✅ DynamoDB Table '" + DYNAMODB_TABLE_NAME + "' is active");
+        } catch (Exception e) {
+            System.err.println("Failed to validate DynamoDB Table: " + e.getMessage());
+            fail("DynamoDB Table health check failed: " + e.getMessage());
         }
     }
 
@@ -95,6 +99,9 @@ public class QaInfrastructureTest {
                     "Load Balancer should be in active state");
             
             System.out.println("✅ Application Load Balancer '" + ALB_NAME + "' is active");
+        } catch (Exception e) {
+            System.err.println("Failed to validate Load Balancer: " + e.getMessage());
+            fail("Load Balancer health check failed: " + e.getMessage());
         }
     }
 
