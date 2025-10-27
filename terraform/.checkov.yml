@@ -26,6 +26,13 @@ skip-check:
   # SECURITY: All resources use custom security groups with proper restrictions
   - CKV2_AWS_12
 
+  # CKV_AWS_150: Load Balancer deletion protection disabled
+  # REASON: Deletion protection disabled for easier terraform destroy in dev/test environments
+  # IMPACT: Load balancers can be destroyed via terraform without manual intervention
+  # SECURITY: Protected by Terraform state management, version control, and IAM permissions
+  # JUSTIFICATION: Development environments require frequent deployment/teardown cycles
+  - CKV_AWS_150
+
   # ========================================================================
   # EXPENSIVE OPTIONAL FEATURES (Cost vs. Benefit Analysis)
   # ========================================================================

@@ -256,7 +256,7 @@ resource "aws_lb" "app_load_balancer" {
   security_groups    = [aws_security_group.alb_security_group.id]
   subnets            = var.subnet_ids
 
-  enable_deletion_protection = true
+  enable_deletion_protection = false
   drop_invalid_header_fields = true
 
   # Disable access logging initially to avoid permission race condition

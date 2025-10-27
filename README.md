@@ -202,7 +202,7 @@ checkov -d . --framework terraform --quiet
 cd terraform
 
 # Run static security analysis
-tfsec .
+tfsec . --config-file .tfsec.yml
 
 # Run with specific severity levels
 tfsec . --minimum-severity MEDIUM
