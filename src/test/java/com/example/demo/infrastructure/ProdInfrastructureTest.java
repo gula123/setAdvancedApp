@@ -37,8 +37,8 @@ public class ProdInfrastructureTest {
     private static final String S3_BUCKET_NAME = "setadvanced-gula-prod";
     private static final String DYNAMODB_TABLE_NAME = "image-recognition-results-prod";
     private static final String ALB_NAME = "app-lb-prod";
-    private static final String SNS_TOPIC_ARN = "arn:aws:sns:eu-north-1:236292171120:s3-events-prod";
-    private static final String SQS_QUEUE_URL = "https://sqs.eu-north-1.amazonaws.com/236292171120/image-processing-queue-prod";
+    private static final String SNS_TOPIC_NAME = "s3-events-prod";
+    private static final String SQS_QUEUE_NAME = "image-processing-queue-prod";
 
     @Test
     public void testS3BucketHealth() {
@@ -112,11 +112,22 @@ public class ProdInfrastructureTest {
                 .credentialsProvider(DefaultCredentialsProvider.create())
                 .build()) {
             
-            snsClient.getTopicAttributes(GetTopicAttributesRequest.builder()
-                    .topicArn(SNS_TOPIC_ARN)
+            // List all topics and find our topic
+            var listTopicsResponse = snsClient.listTopics();
+            var prodTopic = listTopicsResponse.topics().stream()
+                    .filter(topic -> topic.topicArn().endsWith(":" + SNS_TOPIC_NAME))
+                    .findFirst()
+                    .orElseThrow(() -> new RuntimeException("SNS Topic '" + SNS_TOPIC_NAME + "' not found"));
+            
+            // Verify topic is accessible by getting its attributes
+            var response = snsClient.getTopicAttributes(software.amazon.awssdk.services.sns.model.GetTopicAttributesRequest.builder()
+                    .topicArn(prodTopic.topicArn())
                     .build());
             
-            System.out.println("✅ SNS Topic is accessible");
+            assertNotNull(response.attributes(), "SNS Topic attributes should not be null");
+            assertFalse(response.attributes().isEmpty(), "SNS Topic should have attributes");
+            
+            System.out.println("✅ SNS Topic '" + SNS_TOPIC_NAME + "' is active and accessible");
         } catch (Exception e) {
             System.err.println("Failed to validate SNS Topic: " + e.getMessage());
             fail("SNS Topic health check failed: " + e.getMessage());
@@ -130,11 +141,27 @@ public class ProdInfrastructureTest {
                 .credentialsProvider(DefaultCredentialsProvider.create())
                 .build()) {
             
-            sqsClient.getQueueAttributes(GetQueueAttributesRequest.builder()
-                    .queueUrl(SQS_QUEUE_URL)
+            // List all queues and find our queue
+            var listQueuesResponse = sqsClient.listQueues();
+            String queueUrl = listQueuesResponse.queueUrls().stream()
+                    .filter(url -> url.endsWith("/" + SQS_QUEUE_NAME))
+                    .findFirst()
+                    .orElseThrow(() -> new RuntimeException("SQS Queue '" + SQS_QUEUE_NAME + "' not found"));
+            
+            // Verify queue is accessible by getting its attributes
+            var response = sqsClient.getQueueAttributes(software.amazon.awssdk.services.sqs.model.GetQueueAttributesRequest.builder()
+                    .queueUrl(queueUrl)
+                    .attributeNames(software.amazon.awssdk.services.sqs.model.QueueAttributeName.QUEUE_ARN)
                     .build());
             
-            System.out.println("✅ SQS Queue is accessible");
+            assertNotNull(response.attributes(), "SQS Queue attributes should not be null");
+            assertFalse(response.attributes().isEmpty(), "SQS Queue should have attributes");
+            
+            // Check if queue has ARN (indicates it's properly created)
+            assertTrue(response.attributes().containsKey(software.amazon.awssdk.services.sqs.model.QueueAttributeName.QUEUE_ARN), 
+                      "SQS Queue should have an ARN");
+            
+            System.out.println("✅ SQS Queue '" + SQS_QUEUE_NAME + "' is active and accessible");
         } catch (Exception e) {
             System.err.println("Failed to validate SQS Queue: " + e.getMessage());
             fail("SQS Queue health check failed: " + e.getMessage());

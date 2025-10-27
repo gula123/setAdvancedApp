@@ -319,6 +319,21 @@ for env in tf-dev tf-qa tf-prod; do
 done
 ```
 
+#### Maven Infrastructure Testing
+```bash
+# Run all infrastructure tests
+mvn test -Dtest=*InfrastructureTest
+
+# Run only DEV infrastructure test
+mvn test -Dtest=DevInfrastructureTest
+
+# Run only QA infrastructure test
+mvn test -Dtest=QAInfrastructureTest
+
+# Run only PROD infrastructure test
+mvn test -Dtest=ProdInfrastructureTest
+```
+
 ### Useful Commands
 
 ```bash
