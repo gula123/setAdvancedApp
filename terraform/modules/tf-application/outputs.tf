@@ -1,0 +1,29 @@
+output "load_balancer_dns_name" {
+  value       = aws_lb.app_load_balancer.dns_name
+  description = "DNS name of the load balancer"
+}
+
+output "load_balancer_zone_id" {
+  value       = aws_lb.app_load_balancer.zone_id
+  description = "Zone ID of the load balancer"
+}
+
+output "ecs_cluster_name" {
+  value       = aws_ecs_cluster.app_cluster.name
+  description = "Name of the ECS cluster"
+}
+
+output "ecs_service_name" {
+  value       = aws_ecs_service.app_service.name
+  description = "Name of the ECS service"
+}
+
+output "lambda_function_name" {
+  value       = aws_lambda_function.image_processing_lambda.function_name
+  description = "Name of the Lambda function"
+}
+
+output "lambda_function_arn" {
+  value       = aws_lambda_function.image_processing_lambda.arn
+  description = "ARN of the Lambda function"
+}

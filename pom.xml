@@ -40,6 +40,13 @@
             <type>pom</type>
             <scope>import</scope>
         </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>bom</artifactId>
+            <version>2.28.11</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
     </dependencies>
 </dependencyManagement>
 
@@ -112,6 +119,31 @@
     <groupId>me.paulschwarz</groupId>
     <artifactId>spring-dotenv</artifactId>
     <version>4.0.0</version>
+</dependency>
+
+<!-- AWS SDK v2 dependencies for runtime and infrastructure testing -->
+<dependency>
+    <groupId>software.amazon.awssdk</groupId>
+    <artifactId>s3</artifactId>
+</dependency>
+<dependency>
+    <groupId>software.amazon.awssdk</groupId>
+    <artifactId>dynamodb</artifactId>
+</dependency>
+<dependency>
+    <groupId>software.amazon.awssdk</groupId>
+    <artifactId>elasticloadbalancingv2</artifactId>
+    <scope>test</scope>
+</dependency>
+<dependency>
+    <groupId>software.amazon.awssdk</groupId>
+    <artifactId>sns</artifactId>
+    <scope>test</scope>
+</dependency>
+<dependency>
+    <groupId>software.amazon.awssdk</groupId>
+    <artifactId>sqs</artifactId>
+    <scope>test</scope>
 </dependency>
 	</dependencies>
 

@@ -3,9 +3,6 @@ spring:
     aws:
       region:
         static: ${AWS_REGION}
-      credentials:
-        access-key: ${AWS_ACCESS_KEY_ID}
-        secret-key: ${AWS_SECRET_ACCESS_KEY}
       
 app:
   s3:
@@ -23,3 +20,11 @@ management:
     health:
       enabled: true
       show-details: when-authorized
+
+# Production-specific configurations
+logging:
+  level:
+    root: WARN
+    com.example: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
