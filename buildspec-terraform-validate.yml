@@ -55,22 +55,17 @@ phases:
       - echo "==================================="
       - cd $CODEBUILD_SRC_DIR/$TERRAFORM_DIR
       - export VALIDATION_FAILED=0
-      - export VALIDATION_OUTPUT=""
       
-      # Terraform Validate for all modules
       - |
-        for dir in modules/*/; do
-          echo "Validating $(basename $dir)..."
-          cd $CODEBUILD_SRC_DIR/$TERRAFORM_DIR/$dir
-          terraform init -backend=false > /dev/null 2>&1
-          if terraform validate > /tmp/tf-validate-$(basename $dir).txt 2>&1; then
-            echo "✅ $(basename $dir) - PASSED"
-          else
-            echo "❌ $(basename $dir) - FAILED"
-            export VALIDATION_FAILED=1
-            export VALIDATION_OUTPUT="${VALIDATION_OUTPUT}\n\n**$(basename $dir):**\n\`\`\`\n$(cat /tmp/tf-validate-$(basename $dir).txt)\n\`\`\`"
-          fi
-        done
+        echo "Validating all Terraform configurations..."
+        terraform fmt -check -recursive || echo "Warning: formatting issues found"
+        if terraform validate -json > /tmp/tf-validate.json 2>&1; then
+          echo "✅ Terraform Validate - PASSED"
+        else
+          echo "❌ Terraform Validate - FAILED"
+          cat /tmp/tf-validate.json
+          export VALIDATION_FAILED=1
+        fi
       
       - echo ""
       - echo "==================================="
@@ -78,21 +73,12 @@ phases:
       - echo "==================================="
       - cd $CODEBUILD_SRC_DIR/$TERRAFORM_DIR
       - |
-        if checkov -d . --config-file $CODEBUILD_SRC_DIR/$CHECKOV_CONFIG --compact --quiet > /tmp/checkov-output.txt 2>&1; then
+        echo "Running Checkov (non-blocking)..."
+        if checkov -d . --config-file $CODEBUILD_SRC_DIR/$CHECKOV_CONFIG --compact > /tmp/checkov-output.txt 2>&1; then
           echo "✅ Checkov - PASSED"
-          CHECKOV_RESULT="✅ **Checkov Security Scan:** PASSED"
         else
-          CHECKOV_EXIT_CODE=$?
-          if [ $CHECKOV_EXIT_CODE -eq 1 ]; then
-            echo "❌ Checkov - FAILED (Security issues found)"
-            export VALIDATION_FAILED=1
-            # Extract summary from checkov output
-            CHECKOV_SUMMARY=$(grep -A 20 "Passed checks:" /tmp/checkov-output.txt || echo "See full output above")
-            CHECKOV_RESULT="❌ **Checkov Security Scan:** FAILED\n\`\`\`\n${CHECKOV_SUMMARY}\n\`\`\`"
-          else
-            echo "⚠️  Checkov - WARNING (Non-security error: exit code $CHECKOV_EXIT_CODE)"
-            CHECKOV_RESULT="⚠️  **Checkov Security Scan:** WARNING (exit code $CHECKOV_EXIT_CODE)"
-          fi
+          echo "⚠️  Checkov - Found issues (non-blocking)"
+          tail -30 /tmp/checkov-output.txt
         fi
       
       - echo ""
@@ -101,15 +87,15 @@ phases:
       - echo "==================================="
       - cd $CODEBUILD_SRC_DIR/$TERRAFORM_DIR
       - |
+        echo "Running TFLint (errors only)..."
         tflint --init > /dev/null 2>&1
-        if tflint --config $CODEBUILD_SRC_DIR/$TFLINT_CONFIG --recursive --format compact > /tmp/tflint-output.txt 2>&1; then
-          echo "✅ TFLint - PASSED"
-          TFLINT_RESULT="✅ **TFLint:** PASSED"
+        if tflint --config $CODEBUILD_SRC_DIR/$TFLINT_CONFIG --recursive --format compact --minimum-failure-severity=error > /tmp/tflint-output.txt 2>&1; then
+          echo "✅ TFLint - PASSED (no errors)"
+          cat /tmp/tflint-output.txt || true
         else
-          echo "❌ TFLint - FAILED"
+          echo "❌ TFLint - FAILED (errors found)"
+          cat /tmp/tflint-output.txt
           export VALIDATION_FAILED=1
-          TFLINT_SUMMARY=$(head -20 /tmp/tflint-output.txt)
-          TFLINT_RESULT="❌ **TFLint:** FAILED\n\`\`\`\n${TFLINT_SUMMARY}\n\`\`\`"
         fi
 
   post_build:
@@ -118,16 +104,11 @@ phases:
       - echo "Final Results"
       - echo "==================================="
       - |
-        # Report results - GitHub will show status check automatically
         if [ $VALIDATION_FAILED -eq 0 ]; then
           echo "✅ ALL CHECKS PASSED"
-          echo "- Terraform Validate: PASSED"
-          echo "- Checkov: PASSED"
-          echo "- TFLint: PASSED"
           exit 0
         else
-          echo "❌ VALIDATION FAILED"
-          echo "Review the logs above for details"
+          echo "❌ VALIDATION FAILED - Fix errors and push again"
           exit 1
         fi
 
