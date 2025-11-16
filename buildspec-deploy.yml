@@ -121,9 +121,15 @@ phases:
           - AfterAllowTraffic: "AfterAllowTrafficHookLambda"
         EOF
 
+      - echo "Verifying artifact files exist..."
+      - ls -la imagedefinitions.json taskdef.json appspec.yaml lambda_function.zip || echo "Some files missing"
+      - pwd
+
 artifacts:
   files:
     - imagedefinitions.json
     - taskdef.json
     - appspec.yaml
+    - lambda_function.zip
+  name: deploy_build_output
     - lambda_function.zip
