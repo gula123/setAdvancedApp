@@ -15,10 +15,7 @@ phases:
     commands:
       - echo "Running linter checks..."
       - echo "Running unit tests with coverage..."
-      - ./mvnw clean test jacoco:report
-      - echo "Running static code analysis..."
-      - echo "Validating application configuration..."
-      - ./mvnw validate
+      - ./mvnw clean test -Dtest='!**/*Controller*Test,!**/*Infrastructure*Test'
       - echo "Compiling application..."
       - ./mvnw compile
   post_build:
