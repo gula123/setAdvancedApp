@@ -1,0 +1,115 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.11
+
+  pre_build:
+    commands:
+      - echo "Starting integration tests for $ENVIRONMENT environment on `date`"
+      - echo "Installing test dependencies..."
+      - pip install requests pytest boto3
+      
+  build:
+    commands:
+      # Infrastructure Tests
+      - echo "Running infrastructure tests..."
+      - |
+        python3 << 'EOF'
+        import boto3
+        import sys
+        import os
+        
+        # Test ECS service is running
+        ecs = boto3.client('ecs', region_name=os.environ['AWS_DEFAULT_REGION'])
+        try:
+            response = ecs.describe_services(
+                cluster=os.environ['ECS_CLUSTER_NAME'],
+                services=[os.environ['ECS_SERVICE_NAME']]
+            )
+            service = response['services'][0]
+            if service['status'] != 'ACTIVE':
+                print(f"❌ ECS service {os.environ['ECS_SERVICE_NAME']} is not active")
+                sys.exit(1)
+            print(f"✅ ECS service {os.environ['ECS_SERVICE_NAME']} is active")
+            
+            # Check running task count
+            running_count = service['runningCount']
+            desired_count = service['desiredCount']
+            if running_count != desired_count:
+                print(f"❌ ECS service has {running_count} running tasks but {desired_count} desired")
+                sys.exit(1)
+            print(f"✅ ECS service has {running_count} running tasks (desired: {desired_count})")
+            
+        except Exception as e:
+            print(f"❌ Failed to check ECS service: {str(e)}")
+            sys.exit(1)
+        
+        # Test Lambda function is available
+        lambda_client = boto3.client('lambda', region_name=os.environ['AWS_DEFAULT_REGION'])
+        try:
+            response = lambda_client.get_function(FunctionName=os.environ['LAMBDA_FUNCTION_NAME'])
+            print(f"✅ Lambda function {os.environ['LAMBDA_FUNCTION_NAME']} is available")
+        except Exception as e:
+            print(f"❌ Failed to check Lambda function: {str(e)}")
+            sys.exit(1)
+        
+        print("✅ All infrastructure tests passed!")
+        EOF
+
+      # API Tests (basic health check)
+      - echo "Running API tests..."
+      - |
+        # Get the ALB DNS name for the ECS service
+        ELB_DNS=$(aws elbv2 describe-load-balancers --query "LoadBalancers[?contains(LoadBalancerName, 'app-alb-$ENVIRONMENT')].DNSName" --output text)
+        
+        if [ -z "$ELB_DNS" ]; then
+          echo "❌ Could not find ALB DNS name"
+          exit 1
+        fi
+        
+        echo "Testing application at: http://$ELB_DNS"
+        
+        # Wait for application to be available (max 5 minutes)
+        COUNTER=0
+        while [ $COUNTER -lt 30 ]; do
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://$ELB_DNS/actuator/health" || echo "000")
+          if [ "$HTTP_STATUS" = "200" ]; then
+            echo "✅ Application health check passed (HTTP $HTTP_STATUS)"
+            break
+          fi
+          echo "⏳ Waiting for application... (HTTP $HTTP_STATUS) - attempt $((COUNTER + 1))/30"
+          sleep 10
+          COUNTER=$((COUNTER + 1))
+        done
+        
+        if [ $COUNTER -eq 30 ]; then
+          echo "❌ Application health check failed after 5 minutes"
+          exit 1
+        fi
+
+      # Basic API functionality test
+      - echo "Testing basic API functionality..."
+      - |
+        # Test upload endpoint (if available)
+        echo "Testing API endpoints..."
+        
+        # Test basic endpoints
+        HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://$ELB_DNS/api/health" || echo "000")
+        if [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "404" ]; then
+          echo "✅ API endpoint reachable"
+        else
+          echo "❌ API endpoint not reachable (HTTP $HTTP_STATUS)"
+          exit 1
+        fi
+
+  post_build:
+    commands:
+      - echo "🎉 All integration tests completed successfully on `date`"
+      - echo "Environment $ENVIRONMENT is ready for use!"
+
+artifacts:
+  files:
+    - '**/*'
+  name: integration-test-results

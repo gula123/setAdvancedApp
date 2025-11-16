@@ -1,0 +1,14 @@
+# QA Environment Configuration
+# Copy this file to terraform.tfvars and fill in your values
+
+# GitHub Configuration
+github_token = "ghp_your_github_personal_access_token_here"
+
+# AWS Configuration  
+account_id = "your_aws_account_id_here"  # e.g., "123456789012"
+
+# ECR Repository (replace ACCOUNT_ID with your actual account ID)
+ecr_repository_uri = "123456789012.dkr.ecr.eu-north-1.amazonaws.com/set/setadvancedrepository"
+
+# S3 Bucket for Lambda artifacts
+s3_bucket_name = "setadvanced-gula-qa"

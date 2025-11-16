@@ -1,0 +1,163 @@
+# CI CodeBuild Project
+resource "aws_codebuild_project" "ci_build" {
+  name          = "${var.project_name}-ci-${var.environment}"
+  description   = "CI build project for ${var.project_name} ${var.environment}"
+  service_role  = aws_iam_role.codebuild_ci_role.arn
+
+  artifacts {
+    type = "CODEPIPELINE"
+  }
+
+  environment {
+    compute_type                = "BUILD_GENERAL1_SMALL"
+    image                      = "aws/codebuild/standard:7.0"
+    type                       = "LINUX_CONTAINER"
+    image_pull_credentials_type = "CODEBUILD_CURATED"
+    privileged_mode            = true
+
+    environment_variable {
+      name  = "AWS_DEFAULT_REGION"
+      value = var.region
+    }
+
+    environment_variable {
+      name  = "AWS_ACCOUNT_ID"
+      value = var.account_id
+    }
+
+    environment_variable {
+      name  = "IMAGE_REPO_NAME"
+      value = var.project_name
+    }
+  }
+
+  source {
+    type = "CODEPIPELINE"
+    buildspec = "buildspec-ci.yml"
+  }
+
+  tags = {
+    Name        = "${var.project_name}-ci-${var.environment}"
+    Environment = var.environment
+  }
+}
+
+# Deployment CodeBuild Project
+resource "aws_codebuild_project" "deploy_build" {
+  name          = "${var.project_name}-deploy-${var.environment}"
+  description   = "Deployment build project for ${var.project_name} ${var.environment}"
+  service_role  = aws_iam_role.codebuild_deploy_role.arn
+
+  artifacts {
+    type = "CODEPIPELINE"
+  }
+
+  environment {
+    compute_type                = "BUILD_GENERAL1_SMALL"
+    image                      = "aws/codebuild/standard:7.0"
+    type                       = "LINUX_CONTAINER"
+    image_pull_credentials_type = "CODEBUILD_CURATED"
+    privileged_mode            = true
+
+    environment_variable {
+      name  = "AWS_DEFAULT_REGION"
+      value = var.region
+    }
+
+    environment_variable {
+      name  = "AWS_ACCOUNT_ID"
+      value = var.account_id
+    }
+
+    environment_variable {
+      name  = "IMAGE_REPO_NAME"
+      value = var.project_name
+    }
+
+    environment_variable {
+      name  = "ECR_REPOSITORY_URI"
+      value = var.ecr_repository_uri
+    }
+
+    environment_variable {
+      name  = "ECS_CONTAINER_NAME"
+      value = var.container_name
+    }
+
+    environment_variable {
+      name  = "S3_BUCKET_NAME"
+      value = var.s3_bucket_name
+    }
+
+    environment_variable {
+      name  = "LAMBDA_NAME"
+      value = var.lambda_function_name
+    }
+  }
+
+  source {
+    type = "CODEPIPELINE"
+    buildspec = "buildspec-deploy.yml"
+  }
+
+  tags = {
+    Name        = "${var.project_name}-deploy-${var.environment}"
+    Environment = var.environment
+  }
+}
+
+# Integration Tests CodeBuild Project (only for QA/PROD)
+resource "aws_codebuild_project" "integration_tests" {
+  count        = var.environment != "dev" ? 1 : 0
+  name         = "${var.project_name}-integration-tests-${var.environment}"
+  description  = "Integration tests for ${var.environment} environment"
+  service_role = aws_iam_role.codebuild_deploy_role.arn
+
+  artifacts {
+    type = "CODEPIPELINE"
+  }
+
+  environment {
+    compute_type                = "BUILD_GENERAL1_SMALL"
+    image                      = "aws/codebuild/standard:7.0"
+    type                       = "LINUX_CONTAINER"
+    image_pull_credentials_type = "CODEBUILD_CURATED"
+    privileged_mode            = false
+
+    environment_variable {
+      name  = "AWS_DEFAULT_REGION"
+      value = var.region
+    }
+
+    environment_variable {
+      name  = "ENVIRONMENT"
+      value = var.environment
+    }
+
+    environment_variable {
+      name  = "ECS_CLUSTER_NAME"
+      value = var.ecs_cluster_name
+    }
+
+    environment_variable {
+      name  = "ECS_SERVICE_NAME"
+      value = var.ecs_service_name
+    }
+
+    environment_variable {
+      name  = "LAMBDA_FUNCTION_NAME"
+      value = var.lambda_function_name
+    }
+  }
+
+  source {
+    type = "CODEPIPELINE"
+    buildspec = "buildspec-integration-tests.yml"
+  }
+
+  tags = {
+    Name        = "${var.project_name}-integration-tests-${var.environment}"
+    Environment = var.environment
+    Purpose     = "Integration Testing"
+  }
+}

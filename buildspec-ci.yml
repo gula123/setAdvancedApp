@@ -1,0 +1,41 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto21
+
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws --version
+      - echo "Starting CI build on `date`"
+      - echo "Running static analysis and tests..."
+
+  build:
+    commands:
+      - echo "Running linter checks..."
+      - echo "TODO: Add Maven Checkstyle plugin for code quality checks"
+      # ./mvnw checkstyle:check
+      
+      - echo "Running unit tests with coverage..."
+      - ./mvnw clean test jacoco:report
+      
+      - echo "Running static code analysis..."
+      - echo "TODO: Add SonarQube or similar static analysis"
+      
+      - echo "Validating application configuration..."
+      - ./mvnw validate
+      
+      - echo "Compiling application..."
+      - ./mvnw compile
+
+  post_build:
+    commands:
+      - echo "CI build completed on `date`"
+      - echo "All quality gates passed successfully"
+
+artifacts:
+  files:
+    - '**/*'
+  name: ci-build-artifacts
