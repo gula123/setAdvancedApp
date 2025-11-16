@@ -20,6 +20,10 @@ resource "aws_cloudwatch_log_group" "vpc_flow_logs" {
     Name        = "vpc-flow-logs-${var.environment}"
     Environment = var.environment
   }
+
+  lifecycle {
+    prevent_destroy = false
+  }
 }
 
 # IAM role for VPC Flow Logs
