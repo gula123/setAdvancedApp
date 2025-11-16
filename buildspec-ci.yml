@@ -16,7 +16,6 @@ phases:
     commands:
       - echo "Running linter checks..."
       - echo "TODO: Add Maven Checkstyle plugin for code quality checks"
-      # ./mvnw checkstyle:check
       
       - echo "Running unit tests with coverage..."
       - ./mvnw clean test jacoco:report
