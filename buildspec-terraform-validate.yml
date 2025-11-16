@@ -73,12 +73,13 @@ phases:
       - echo "==================================="
       - cd $CODEBUILD_SRC_DIR/$TERRAFORM_DIR
       - |
-        echo "Running Checkov (non-blocking)..."
+        echo "Running Checkov with exceptions..."
         if checkov -d . --config-file $CODEBUILD_SRC_DIR/$CHECKOV_CONFIG --compact > /tmp/checkov-output.txt 2>&1; then
           echo "✅ Checkov - PASSED"
         else
-          echo "⚠️  Checkov - Found issues (non-blocking)"
-          tail -30 /tmp/checkov-output.txt
+          echo "❌ Checkov - FAILED"
+          tail -50 /tmp/checkov-output.txt
+          export VALIDATION_FAILED=1
         fi
       
       - echo ""
