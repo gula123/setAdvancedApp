@@ -51,12 +51,14 @@ phases:
       - echo "Target branch ${TARGET_BRANCH}"
       - echo "Commit SHA ${CODEBUILD_RESOLVED_SOURCE_VERSION}"
       - |
+        set +e  # Don't exit on errors in this section
+        
         # Extract PR number from source version or find it via commit SHA
         export GH_TOKEN=$GITHUB_TOKEN
         
         # Try to find PR number from the commit
         echo "Searching for PR with commit ${CODEBUILD_RESOLVED_SOURCE_VERSION}..."
-        PR_NUMBER=$(gh pr list --repo ${GITHUB_REPO} --search "${CODEBUILD_RESOLVED_SOURCE_VERSION}" --json number --jq '.[0].number' 2>/dev/null || echo "")
+        PR_NUMBER=$(gh pr list --repo ${GITHUB_REPO} --search "${CODEBUILD_RESOLVED_SOURCE_VERSION}" --json number --jq '.[0].number' 2>/dev/null)
         
         if [ -z "$PR_NUMBER" ] || [ "$PR_NUMBER" = "null" ]; then
           echo "⚠️  Could not find PR number, skipping PR comments"
@@ -66,21 +68,27 @@ phases:
           echo "✅ Found PR #${PR_NUMBER}"
           
           # Post initial comment to PR (non-blocking)
-          gh pr comment ${PR_NUMBER} \
-            --repo ${GITHUB_REPO} \
-            --body "🔍 **Terraform Static Analysis Started**
-        
+          gh pr comment ${PR_NUMBER} --repo ${GITHUB_REPO} --body "🔍 **Terraform Static Analysis Started**
+
         Build: [View Logs](https://console.aws.amazon.com/codesuite/codebuild/projects/setadvanced-pr-validation-dev/build/${CODEBUILD_BUILD_ID})
-        Commit: \`${CODEBUILD_RESOLVED_SOURCE_VERSION:0:8}\`
+        Commit: ${CODEBUILD_RESOLVED_SOURCE_VERSION:0:8}
         
         - ⏳ Running terraform validate...
         - ⏳ Running checkov security scan...
         - ⏳ Running tflint checks...
         
-        Results will be posted here when complete." 2>&1 || echo "⚠️  Failed to post initial comment (continuing anyway)"
+        Results will be posted here when complete." 2>&1
+          
+          if [ $? -eq 0 ]; then
+            echo "✅ Posted initial comment to PR"
+          else
+            echo "⚠️  Failed to post initial comment (continuing anyway)"
+          fi
           
           export PR_NUMBER
         fi
+        
+        set -e  # Re-enable exit on error
 
   build:
     commands:
