@@ -22,11 +22,12 @@ phases:
       python: 3.11
     commands:
       - echo "Installing Terraform..."
-      - rm -rf terraform terraform_*.zip
+      - rm -f /usr/local/bin/terraform terraform_*.zip
       - wget -q https://releases.hashicorp.com/terraform/1.5.7/terraform_1.5.7_linux_amd64.zip
       - unzip -q terraform_1.5.7_linux_amd64.zip
       - chmod +x terraform
       - mv terraform /usr/local/bin/
+      - rm -f terraform_*.zip
       - terraform version
       
       - echo "Installing Checkov..."
@@ -43,6 +44,7 @@ phases:
       - echo "Repository ${GITHUB_REPO}"
       - echo "Target branch ${TARGET_BRANCH}"
       - echo "Commit SHA ${CODEBUILD_RESOLVED_SOURCE_VERSION}"
+      - export VALIDATION_FAILED=0
 
   build:
     commands:
