@@ -26,11 +26,22 @@ Each VPC includes:
 
 ### Environment Status
 - ✅ **DEV**: **DEPLOYED** 
-  - URL: http://app-lb-dev-345287946.eu-north-1.elb.amazonaws.com
   - VPC: 10.1.0.0/16
-  - Resources: 52 active
-- 🟡 **QA**: Ready for deployment
-- 🟡 **PROD**: Ready for deployment
+  - Deployment: ECS Rolling Update
+  - CI/CD: ✅ Active (GitHub → CodePipeline)
+- ✅ **QA**: **DEPLOYED**
+  - VPC: 10.2.0.0/16
+  - Deployment: ECS Rolling Update
+  - CI/CD: ✅ Active (GitHub → CodePipeline)
+- ✅ **PROD**: **DEPLOYED**
+  - VPC: 10.3.0.0/16
+  - Deployment: Blue-Green (Zero Downtime)
+  - CI/CD: ✅ Active (GitHub → CodePipeline → CodeDeploy)
+
+### CI/CD Pipelines (Module 3)
+- ✅ **DEV Pipeline**: `setadvanced-pipeline-dev` (Standard ECS Deployment)
+- ✅ **QA Pipeline**: `setadvanced-pipeline-qa` (Standard ECS Deployment + Manual Approval)
+- ✅ **PROD Pipeline**: `setadvanced-pipeline-prod` (Blue-Green Deployment)
 
 ## 📋 Prerequisites
 
@@ -110,6 +121,38 @@ terraform plan
 terraform apply
 ```
 
+### 3. CI/CD Pipeline Deployment (Module 3)
+
+#### Prerequisites
+- GitHub personal access token with repo permissions
+- Application infrastructure deployed (DEV/QA/PROD)
+- GitHub repository: https://github.com/gula123/setAdvancedApp
+
+#### Deploy DEV CI/CD Pipeline
+```bash
+cd terraform/tf-cicd-dev
+# Create terraform.tfvars with your GitHub token
+echo 'github_token = "YOUR_GITHUB_TOKEN"' > terraform.tfvars
+terraform init
+terraform apply
+```
+
+#### Deploy QA CI/CD Pipeline
+```bash
+cd terraform/tf-cicd-qa
+echo 'github_token = "YOUR_GITHUB_TOKEN"' > terraform.tfvars
+terraform init
+terraform apply
+```
+
+#### Deploy PROD CI/CD Pipeline (Blue-Green)
+```bash
+cd terraform/tf-cicd-prod
+echo 'github_token = "YOUR_GITHUB_TOKEN"' > terraform.tfvars
+terraform init
+terraform apply
+```
+
 ## 🔧 Key Features
 
 ### Separate VPC Architecture
@@ -139,6 +182,16 @@ terraform apply
 - **Application Load Balancer** with health checks
 - **Private subnet deployment** for enhanced security
 
+### CI/CD Automation (Module 3)
+- **GitHub Integration** with webhook triggers
+- **Automated Testing** with CI pipeline (linting, unit tests)
+- **Container Build & Push** to Amazon ECR
+- **ECS Deployment** with rolling updates (DEV/QA)
+- **Blue-Green Deployment** for zero-downtime releases (PROD)
+- **CodeDeploy Integration** with automatic rollback
+- **Manual Approval Gates** for QA environment
+- **Integration Testing** automated in pipeline
+
 ## 📁 Project Structure
 
 ```
@@ -150,11 +203,17 @@ setAdvancedApp/
 │   ├── tf-dev/              # DEV environment (10.1.0.0/16)
 │   ├── tf-qa/               # QA environment (10.2.0.0/16)
 │   ├── tf-prod/             # PROD environment (10.3.0.0/16)
+│   ├── tf-cicd-dev/         # CI/CD pipeline for DEV
+│   ├── tf-cicd-qa/          # CI/CD pipeline for QA
+│   ├── tf-cicd-prod/        # CI/CD pipeline for PROD (Blue-Green)
 │   └── modules/
 │       ├── tf-environment/  # VPC, networking, core services
-│       └── tf-application/  # ECS, ALB, application resources
+│       ├── tf-application/  # ECS, ALB, application resources
+│       └── tf-cicd/         # CodePipeline, CodeBuild, CodeDeploy
 ├── src/                     # Java Spring Boot application
-└── Dockerfile              # Container configuration
+├── Dockerfile               # Container configuration
+├── buildspec-ci.yml         # CodeBuild CI pipeline specification
+└── buildspec-deploy.yml     # CodeBuild deployment specification
 ```
 
 ## 🔐 Security Features

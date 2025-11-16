@@ -1,5 +1,7 @@
 # Blue-Green deployment configuration using AWS CodeDeploy
+# Only created when target_group_green_name is provided (indicating Blue-Green deployment)
 resource "aws_codedeploy_app" "app" {
+  count            = var.target_group_green_name != "" ? 1 : 0
   compute_platform = "ECS"
   name             = "${var.project_name}-app-${var.environment}"
 
@@ -11,7 +13,8 @@ resource "aws_codedeploy_app" "app" {
 
 # CodeDeploy service role
 resource "aws_iam_role" "codedeploy_role" {
-  name = "codedeploy-role-${var.environment}"
+  count = var.target_group_green_name != "" ? 1 : 0
+  name  = "codedeploy-role-${var.environment}"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -34,16 +37,18 @@ resource "aws_iam_role" "codedeploy_role" {
 
 # Attach AWS managed policy for CodeDeploy ECS
 resource "aws_iam_role_policy_attachment" "codedeploy_policy" {
-  role       = aws_iam_role.codedeploy_role.name
+  count      = var.target_group_green_name != "" ? 1 : 0
+  role       = aws_iam_role.codedeploy_role[0].name
   policy_arn = "arn:aws:iam::aws:policy/AWSCodeDeployRoleForECS"
 }
 
 # CodeDeploy deployment group for Blue-Green deployment
 resource "aws_codedeploy_deployment_group" "app_deployment_group" {
-  app_name               = aws_codedeploy_app.app.name
+  count                  = var.target_group_green_name != "" ? 1 : 0
+  app_name               = aws_codedeploy_app.app[0].name
   deployment_group_name  = "${var.project_name}-deployment-group-${var.environment}"
-  service_role_arn      = aws_iam_role.codedeploy_role.arn
-  deployment_config_name = aws_codedeploy_deployment_config.ecs_blue_green.id
+  service_role_arn       = aws_iam_role.codedeploy_role[0].arn
+  deployment_config_name = aws_codedeploy_deployment_config.ecs_blue_green[0].id
 
   deployment_style {
     deployment_option = "WITH_TRAFFIC_CONTROL"
@@ -95,6 +100,7 @@ resource "aws_codedeploy_deployment_group" "app_deployment_group" {
 
 # CodeDeploy deployment configuration for ECS Blue-Green
 resource "aws_codedeploy_deployment_config" "ecs_blue_green" {
+  count                  = var.target_group_green_name != "" ? 1 : 0
   deployment_config_name = "${var.project_name}-ECSBlueGreen-${var.environment}"
   compute_platform       = "ECS"
 

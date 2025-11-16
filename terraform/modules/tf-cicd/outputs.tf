@@ -39,16 +39,16 @@ output "codepipeline_role_arn" {
 }
 
 output "codedeploy_application_name" {
-  value       = aws_codedeploy_app.app.name
+  value       = var.target_group_green_name != "" ? aws_codedeploy_app.app[0].name : null
   description = "Name of the CodeDeploy application"
 }
 
 output "codedeploy_deployment_group_name" {
-  value       = aws_codedeploy_deployment_group.app_deployment_group.deployment_group_name
+  value       = var.target_group_green_name != "" ? aws_codedeploy_deployment_group.app_deployment_group[0].deployment_group_name : null
   description = "Name of the CodeDeploy deployment group"
 }
 
 output "codedeploy_role_arn" {
-  value       = aws_iam_role.codedeploy_role.arn
+  value       = var.target_group_green_name != "" ? aws_iam_role.codedeploy_role[0].arn : null
   description = "ARN of the CodeDeploy role"
 }

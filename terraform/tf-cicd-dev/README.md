@@ -1,26 +1,24 @@
-# CI/CD Pipeline Setup - Module 3
+# CI/CD Pipeline - DEV Environment
 
-This directory contains Terraform configuration for implementing Module 3 of the SET Advanced mentoring program - CI/CD in Cloud using AWS CodePipeline and CodeBuild with GitHub integration.
+This directory contains Terraform configuration for the DEV environment CI/CD pipeline using AWS CodePipeline, CodeBuild, and GitHub integration.
 
 ## Architecture Overview
 
-The CI/CD pipeline implements:
+The DEV CI/CD pipeline implements **standard ECS rolling updates** with automated deployment:
 
-1. **CI Pipeline (CodeBuild)**:
-   - Static code analysis (linting)
-   - Unit tests with coverage
-   - Application compilation validation
-   - Quality gates enforcement
+### Pipeline Stages
 
-2. **Deployment Pipeline (CodeBuild + CodePipeline)**:
-   - Docker image building and pushing to ECR
-   - Lambda function packaging and deployment
-   - ECS service deployment with rolling updates
-   - Artifact management in S3
+1. **Source**: GitHub repository (main branch)
+2. **CI_Build**: Quality checks, linting, unit tests
+3. **Deploy_Build**: Docker image build and push to ECR
+4. **Deploy_ECS**: Direct deployment to ECS service
 
-3. **GitHub Integration**:
-   - Webhook-triggered pipeline on push to main branch
-   - Automated deployment on successful CI checks
+### Deployment Strategy
+
+- **Type**: ECS Rolling Update
+- **Zero Manual Steps**: Fully automated from commit to deployment
+- **Fast Feedback**: Quick iterations for development
+- **No Approval Gates**: Continuous deployment on successful build
 
 ## Components Created
 

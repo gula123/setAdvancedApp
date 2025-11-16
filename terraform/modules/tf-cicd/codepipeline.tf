@@ -64,24 +64,51 @@ resource "aws_codepipeline" "cicd_pipeline" {
     }
   }
 
-  stage {
-    name = "Deploy"
+  # Deploy stage - use CodeDeployToECS for Blue-Green, ECS for standard deployment
+  dynamic "stage" {
+    for_each = var.target_group_green_name != "" ? [1] : []
+    content {
+      name = "Deploy_BlueGreen"
 
-    action {
-      name            = "Deploy"
-      category        = "Deploy"
-      owner           = "AWS"
-      provider        = "CodeDeployToECS"
-      input_artifacts = ["deploy_build_output"]
-      version         = "1"
+      action {
+        name            = "Deploy"
+        category        = "Deploy"
+        owner           = "AWS"
+        provider        = "CodeDeployToECS"
+        input_artifacts = ["deploy_build_output"]
+        version         = "1"
 
-      configuration = {
-        ApplicationName                = aws_codedeploy_app.app.name
-        DeploymentGroupName           = aws_codedeploy_deployment_group.app_deployment_group.deployment_group_name
-        TaskDefinitionTemplateArtifact = "deploy_build_output"
-        AppSpecTemplateArtifact       = "deploy_build_output"
-        TaskDefinitionTemplatePath    = "taskdef.json"
-        AppSpecTemplatePath           = "appspec.yaml"
+        configuration = {
+          ApplicationName                = aws_codedeploy_app.app[0].name
+          DeploymentGroupName            = aws_codedeploy_deployment_group.app_deployment_group[0].deployment_group_name
+          TaskDefinitionTemplateArtifact = "deploy_build_output"
+          AppSpecTemplateArtifact        = "deploy_build_output"
+          TaskDefinitionTemplatePath     = "taskdef.json"
+          AppSpecTemplatePath            = "appspec.yaml"
+        }
+      }
+    }
+  }
+
+  # Standard ECS deployment (no Blue-Green)
+  dynamic "stage" {
+    for_each = var.target_group_green_name == "" ? [1] : []
+    content {
+      name = "Deploy_ECS"
+
+      action {
+        name            = "Deploy"
+        category        = "Deploy"
+        owner           = "AWS"
+        provider        = "ECS"
+        input_artifacts = ["deploy_build_output"]
+        version         = "1"
+
+        configuration = {
+          ClusterName = var.ecs_cluster_name
+          ServiceName = var.ecs_service_name
+          FileName    = "imagedefinitions.json"
+        }
       }
     }
   }

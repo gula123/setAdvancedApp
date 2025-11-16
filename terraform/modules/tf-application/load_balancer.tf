@@ -300,8 +300,9 @@ resource "aws_lb_target_group" "app_target_group" {
   }
 }
 
-# Second target group for blue-green deployment
+# Second target group for blue-green deployment (only created when enabled)
 resource "aws_lb_target_group" "app_target_group_green" {
+  count       = var.enable_blue_green_deployment ? 1 : 0
   name        = "app-tg-green-${var.environment}"
   port        = var.application_port
   protocol    = "HTTP"

@@ -39,6 +39,6 @@ output "target_group_name" {
 }
 
 output "target_group_green_name" {
-  value       = aws_lb_target_group.app_target_group_green.name
+  value       = var.enable_blue_green_deployment ? aws_lb_target_group.app_target_group_green[0].name : null
   description = "Name of the green ALB target group for blue-green deployment"
 }

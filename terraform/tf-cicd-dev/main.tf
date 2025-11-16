@@ -32,11 +32,6 @@ data "aws_lb_target_group" "app_tg" {
   name = "app-tg-dev"
 }
 
-# Get existing target group (green)
-data "aws_lb_target_group" "app_tg_green" {
-  name = "app-tg-green-dev"
-}
-
 # Get existing listener
 data "aws_lb_listener" "app_listener" {
   load_balancer_arn = data.aws_lb.app_lb.arn
@@ -70,10 +65,8 @@ module "cicd" {
   project_name   = "setadvanced"
   container_name = "app"
   
-  # Blue-Green deployment configuration
-  target_group_name       = data.aws_lb_target_group.app_tg.name
-  target_group_green_name = data.aws_lb_target_group.app_tg_green.name
-  listener_arn            = data.aws_lb_listener.app_listener.arn
+  # Standard deployment configuration (no Blue-Green for DEV)
+  target_group_name = data.aws_lb_target_group.app_tg.name
 }
 
 # Outputs

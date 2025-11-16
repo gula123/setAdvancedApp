@@ -14,8 +14,26 @@ provider "aws" {
   region = "eu-north-1"
 }
 
+# Get current AWS account ID
+data "aws_caller_identity" "current" {}
+
+# Get existing ECR repository
+data "aws_ecr_repository" "app_repo" {
+  name = "set/setadvancedrepository"
+}
+
+# Get existing ALB
+data "aws_lb" "app_lb" {
+  name = "app-lb-qa"
+}
+
+# Get existing target group
+data "aws_lb_target_group" "app_tg" {
+  name = "app-tg-qa"
+}
+
 # QA Environment CI/CD Pipeline
-module "cicd_pipeline_qa" {
+module "cicd" {
   source = "../modules/tf-cicd"
 
   # Environment Configuration
@@ -30,25 +48,47 @@ module "cicd_pipeline_qa" {
 
   # AWS Configuration
   region     = "eu-north-1"
-  account_id = var.account_id
+  account_id = data.aws_caller_identity.current.account_id
 
   # ECR Repository
-  ecr_repository_uri = var.ecr_repository_uri
+  ecr_repository_uri = data.aws_ecr_repository.app_repo.repository_url
 
   # ECS Configuration
   ecs_cluster_name = "app-cluster-qa"
   ecs_service_name = "app-service-qa"
-  container_name   = "app-container-qa"
+  container_name   = "app"
 
   # Lambda Configuration
   lambda_function_name = "image-processing-lambda-qa"
 
   # S3 Configuration
-  s3_bucket_name = var.s3_bucket_name
+  s3_bucket_name = "setadvanced-gula-qa"
 
-  # ALB Target Group
-  target_group_name = "app-tg-qa"
+  # Standard deployment configuration (no Blue-Green for QA)
+  target_group_name = data.aws_lb_target_group.app_tg.name
+}
+# Outputs
+output "codepipeline_name" {
+  value       = module.cicd.codepipeline_name
+  description = "Name of the CodePipeline"
+}
 
-  # Blue-Green Deployment Hook
-  blue_green_hook_lambda_name = "blue-green-hook-lambda-qa"
+output "codepipeline_url" {
+  value       = "https://console.aws.amazon.com/codesuite/codepipeline/pipelines/${module.cicd.codepipeline_name}/view"
+  description = "URL to view the CodePipeline in AWS Console"
+}
+
+output "ci_codebuild_project_name" {
+  value       = module.cicd.ci_codebuild_project_name
+  description = "Name of the CI CodeBuild project"
+}
+
+output "deploy_codebuild_project_name" {
+  value       = module.cicd.deploy_codebuild_project_name
+  description = "Name of the Deploy CodeBuild project"
+}
+
+output "artifacts_bucket_name" {
+  value       = module.cicd.artifacts_bucket_name
+  description = "Name of the S3 bucket for CodePipeline artifacts"
 }
