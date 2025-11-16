@@ -36,13 +36,6 @@ phases:
       - echo "Installing TFLint..."
       - curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
       - tflint --version
-      
-      - echo "Installing GitHub CLI for PR feedback..."
-      - curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-      - chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
-      - echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-      - apt-get update && apt-get install gh -y
-      - gh --version
 
   pre_build:
     commands:
@@ -50,7 +43,6 @@ phases:
       - echo "Repository ${GITHUB_REPO}"
       - echo "Target branch ${TARGET_BRANCH}"
       - echo "Commit SHA ${CODEBUILD_RESOLVED_SOURCE_VERSION}"
-      - echo "Note PR comments disabled - validation results will appear as GitHub status check"
 
   build:
     commands:
@@ -119,77 +111,19 @@ phases:
   post_build:
     commands:
       - echo "==================================="
-      - echo "Posting Results to GitHub PR"
+      - echo "Final Results"
       - echo "==================================="
-      - cd $CODEBUILD_SRC_DIR
       - |
-        export GH_TOKEN=$GITHUB_TOKEN
-        
-        # Only post to PR if we found the PR number
-        if [ -z "$PR_NUMBER" ]; then
-          echo "No PR number found, skipping PR comments"
-          if [ $VALIDATION_FAILED -eq 0 ]; then
-            echo "✅ All validation checks passed"
-            exit 0
-          else
-            echo "❌ Validation checks failed"
-            exit 1
-          fi
-        fi
-        
+        # Report results - GitHub will show status check automatically
         if [ $VALIDATION_FAILED -eq 0 ]; then
-          # All checks passed - approve PR
-          RESULT_EMOJI="✅"
-          RESULT_STATUS="PASSED"
-          RESULT_MESSAGE="All Terraform static analysis checks have passed! This PR is ready for review."
-          
-          # Post approval comment
-          gh pr comment ${PR_NUMBER} \
-            --repo ${GITHUB_REPO} \
-            --body "## ${RESULT_EMOJI} Terraform Static Analysis: ${RESULT_STATUS}
-        
-        ${RESULT_MESSAGE}
-        
-        ### Results Summary:
-        - ✅ **Terraform Validate:** PASSED
-        - ${CHECKOV_RESULT}
-        - ${TFLINT_RESULT}
-        
-        Build: [${CODEBUILD_BUILD_ID}](https://console.aws.amazon.com/codesuite/codebuild/projects/setadvanced-pr-validation-dev/build/${CODEBUILD_BUILD_ID})" || echo "Failed to post comment"
-          
-          # Approve the PR programmatically
-          echo "Attempting to approve PR..."
-          gh pr review ${PR_NUMBER} --repo ${GITHUB_REPO} --approve --body "Automated approval: All Terraform static checks passed." || echo "Note: PR approval may require additional permissions"
-          
+          echo "✅ ALL CHECKS PASSED"
+          echo "- Terraform Validate: PASSED"
+          echo "- Checkov: PASSED"
+          echo "- TFLint: PASSED"
           exit 0
         else
-          # Validation failed
-          RESULT_EMOJI="❌"
-          RESULT_STATUS="FAILED"
-          RESULT_MESSAGE="Terraform static analysis found issues that must be fixed before merging."
-          
-          # Post failure comment
-          gh pr comment ${PR_NUMBER} \
-            --repo ${GITHUB_REPO} \
-            --body "## ${RESULT_EMOJI} Terraform Static Analysis: ${RESULT_STATUS}
-        
-        ${RESULT_MESSAGE}
-        
-        ### Results Summary:
-        - $([ -z \"$VALIDATION_OUTPUT\" ] && echo \"✅\" || echo \"❌\") **Terraform Validate:** $([ -z \"$VALIDATION_OUTPUT\" ] && echo \"PASSED\" || echo \"FAILED\")
-        ${VALIDATION_OUTPUT}
-        
-        - ${CHECKOV_RESULT}
-        
-        - ${TFLINT_RESULT}
-        
-        ### Next Steps:
-        1. Review the errors above
-        2. Fix the issues in your branch
-        3. Push the changes - this check will run automatically
-        
-        Build: [${CODEBUILD_BUILD_ID}](https://console.aws.amazon.com/codesuite/codebuild/projects/setadvanced-pr-validation-dev/build/${CODEBUILD_BUILD_ID})" || echo "Failed to post comment"
-          
+          echo "❌ VALIDATION FAILED"
+          echo "Review the logs above for details"
           exit 1
         fi
 
