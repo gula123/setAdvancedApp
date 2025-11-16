@@ -12,7 +12,7 @@ resource "aws_codebuild_project" "ci_build" {
     compute_type                = "BUILD_GENERAL1_SMALL"
     image                      = "aws/codebuild/standard:7.0"
     type                       = "LINUX_CONTAINER"
-    image_pull_credentials_type = "CODEBUILD_CURATED"
+    image_pull_credentials_type = "CODEBUILD"
     privileged_mode            = true
 
     environment_variable {
@@ -56,7 +56,7 @@ resource "aws_codebuild_project" "deploy_build" {
     compute_type                = "BUILD_GENERAL1_SMALL"
     image                      = "aws/codebuild/standard:7.0"
     type                       = "LINUX_CONTAINER"
-    image_pull_credentials_type = "CODEBUILD_CURATED"
+    image_pull_credentials_type = "CODEBUILD"
     privileged_mode            = true
 
     environment_variable {
@@ -121,7 +121,7 @@ resource "aws_codebuild_project" "integration_tests" {
     compute_type                = "BUILD_GENERAL1_SMALL"
     image                      = "aws/codebuild/standard:7.0"
     type                       = "LINUX_CONTAINER"
-    image_pull_credentials_type = "CODEBUILD_CURATED"
+    image_pull_credentials_type = "CODEBUILD"
     privileged_mode            = false
 
     environment_variable {

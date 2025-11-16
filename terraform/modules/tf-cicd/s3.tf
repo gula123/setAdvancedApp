@@ -51,6 +51,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "codepipeline_artifacts_lifecyc
     id     = "delete_old_artifacts"
     status = "Enabled"
 
+    filter {}  # Empty filter applies to all objects
+
     expiration {
       days = 30
     }

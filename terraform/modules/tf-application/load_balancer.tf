@@ -300,6 +300,32 @@ resource "aws_lb_target_group" "app_target_group" {
   }
 }
 
+# Second target group for blue-green deployment
+resource "aws_lb_target_group" "app_target_group_green" {
+  name        = "app-tg-green-${var.environment}"
+  port        = var.application_port
+  protocol    = "HTTP"
+  vpc_id      = var.vpc_id
+  target_type = "ip"
+
+  health_check {
+    enabled             = true
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+    timeout             = 5
+    interval            = 30
+    path                = "/actuator/health"
+    matcher             = "200"
+    port                = "traffic-port"
+    protocol            = "HTTP"
+  }
+
+  tags = {
+    Name        = "app-tg-green-${var.environment}"
+    Environment = var.environment
+  }
+}
+
 # HTTP Listener - Redirect to HTTPS when HTTPS is enabled
 resource "aws_lb_listener" "app_listener_http" {
   load_balancer_arn = aws_lb.app_load_balancer.arn

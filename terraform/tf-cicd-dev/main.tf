@@ -1,3 +1,14 @@
+terraform {
+  required_version = ">= 1.0"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+}
+
 # Configure AWS Provider
 provider "aws" {
   region = "eu-north-1"
@@ -9,6 +20,27 @@ data "aws_caller_identity" "current" {}
 # Get existing ECR repository
 data "aws_ecr_repository" "app_repo" {
   name = "set/setadvancedrepository"
+}
+
+# Get existing ALB
+data "aws_lb" "app_lb" {
+  name = "app-lb-dev"
+}
+
+# Get existing target group (blue)
+data "aws_lb_target_group" "app_tg" {
+  name = "app-tg-dev"
+}
+
+# Get existing target group (green)
+data "aws_lb_target_group" "app_tg_green" {
+  name = "app-tg-green-dev"
+}
+
+# Get existing listener
+data "aws_lb_listener" "app_listener" {
+  load_balancer_arn = data.aws_lb.app_lb.arn
+  port              = 80
 }
 
 # CI/CD Module
@@ -39,7 +71,9 @@ module "cicd" {
   container_name = "app"
   
   # Blue-Green deployment configuration
-  target_group_name = "app-tg-dev"  # Matches your existing ALB target group
+  target_group_name       = data.aws_lb_target_group.app_tg.name
+  target_group_green_name = data.aws_lb_target_group.app_tg_green.name
+  listener_arn            = data.aws_lb_listener.app_listener.arn
 }
 
 # Outputs

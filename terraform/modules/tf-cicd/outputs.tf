@@ -39,7 +39,7 @@ output "codepipeline_role_arn" {
 }
 
 output "codedeploy_application_name" {
-  value       = aws_codedeploy_application.app.name
+  value       = aws_codedeploy_app.app.name
   description = "Name of the CodeDeploy application"
 }
 

@@ -1,5 +1,5 @@
-# Blue-Green deployment configuration
-resource "aws_codedeploy_application" "app" {
+# Blue-Green deployment configuration using AWS CodeDeploy
+resource "aws_codedeploy_app" "app" {
   compute_platform = "ECS"
   name             = "${var.project_name}-app-${var.environment}"
 
@@ -40,9 +40,15 @@ resource "aws_iam_role_policy_attachment" "codedeploy_policy" {
 
 # CodeDeploy deployment group for Blue-Green deployment
 resource "aws_codedeploy_deployment_group" "app_deployment_group" {
-  app_name               = aws_codedeploy_application.app.name
+  app_name               = aws_codedeploy_app.app.name
   deployment_group_name  = "${var.project_name}-deployment-group-${var.environment}"
   service_role_arn      = aws_iam_role.codedeploy_role.arn
+  deployment_config_name = aws_codedeploy_deployment_config.ecs_blue_green.id
+
+  deployment_style {
+    deployment_option = "WITH_TRAFFIC_CONTROL"
+    deployment_type   = "BLUE_GREEN"
+  }
 
   auto_rollback_configuration {
     enabled = true
@@ -58,10 +64,6 @@ resource "aws_codedeploy_deployment_group" "app_deployment_group" {
     deployment_ready_option {
       action_on_timeout = "CONTINUE_DEPLOYMENT"
     }
-
-    green_fleet_provisioning_option {
-      action = "COPY_AUTO_SCALING_GROUP"
-    }
   }
 
   ecs_service {
@@ -69,11 +71,18 @@ resource "aws_codedeploy_deployment_group" "app_deployment_group" {
     service_name = var.ecs_service_name
   }
 
-  dynamic "load_balancer_info" {
-    for_each = var.target_group_name != "" ? [1] : []
-    content {
-      target_group_info {
+  load_balancer_info {
+    target_group_pair_info {
+      prod_traffic_route {
+        listener_arns = [var.listener_arn]
+      }
+
+      target_group {
         name = var.target_group_name
+      }
+
+      target_group {
+        name = var.target_group_green_name
       }
     }
   }

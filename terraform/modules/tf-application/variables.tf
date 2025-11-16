@@ -89,3 +89,9 @@ variable "s3_kms_key_arn" {
   description = "ARN of the S3 KMS key"
   default     = ""
 }
+
+variable "enable_blue_green_deployment" {
+  type        = bool
+  description = "Enable blue-green deployment with CodeDeploy"
+  default     = false
+}

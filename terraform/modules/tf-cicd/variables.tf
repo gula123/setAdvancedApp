@@ -76,12 +76,24 @@ variable "project_name" {
 
 variable "target_group_name" {
   type        = string
-  description = "ALB target group name for blue-green deployment"
+  description = "ALB target group name for blue-green deployment (blue)"
+  default     = ""
+}
+
+variable "target_group_green_name" {
+  type        = string
+  description = "ALB target group name for blue-green deployment (green)"
   default     = ""
 }
 
 variable "blue_green_hook_lambda_name" {
   type        = string
   description = "Lambda function name for blue-green deployment hooks"
+  default     = ""
+}
+
+variable "listener_arn" {
+  type        = string
+  description = "ALB listener ARN for blue-green deployment"
   default     = ""
 }

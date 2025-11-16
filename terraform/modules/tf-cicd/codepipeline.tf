@@ -76,7 +76,7 @@ resource "aws_codepipeline" "cicd_pipeline" {
       version         = "1"
 
       configuration = {
-        ApplicationName                = aws_codedeploy_application.app.name
+        ApplicationName                = aws_codedeploy_app.app.name
         DeploymentGroupName           = aws_codedeploy_deployment_group.app_deployment_group.deployment_group_name
         TaskDefinitionTemplateArtifact = "deploy_build_output"
         AppSpecTemplateArtifact       = "deploy_build_output"
