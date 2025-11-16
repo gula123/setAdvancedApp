@@ -19,7 +19,7 @@ phases:
     commands:
       - echo "Build started on `date`"
       - echo "Building the Spring Boot application..."
-      - ./mvnw clean package -B -DskipTests
+      - ./mvnw clean package -B -q -DskipTests
       
       - echo "Building Docker image..."
       - docker build -t $IMAGE_REPO_NAME .
@@ -125,15 +125,19 @@ phases:
         EOF
 
       - echo "Verifying artifact files exist..."
-      - ls -la imagedefinitions.json taskdef.json appspec.yaml lambda_function.zip || echo "Some files missing"
       - pwd
+      - echo "Listing all files in current directory:"
+      - ls -la
+      - echo "Checking specific artifact files:"
+      - test -f imagedefinitions.json && echo "✅ imagedefinitions.json exists" || echo "❌ imagedefinitions.json MISSING"
+      - test -f taskdef.json && echo "✅ taskdef.json exists" || echo "❌ taskdef.json MISSING"
+      - test -f appspec.yaml && echo "✅ appspec.yaml exists" || echo "❌ appspec.yaml MISSING"
+      - test -f lambda_function.zip && echo "✅ lambda_function.zip exists" || echo "❌ lambda_function.zip MISSING"
 
 artifacts:
-  base-directory: '.'
   files:
     - imagedefinitions.json
     - taskdef.json
     - appspec.yaml
     - lambda_function.zip
-  name: deploy_build_output
     - lambda_function.zip
