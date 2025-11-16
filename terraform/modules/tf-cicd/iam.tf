@@ -242,3 +242,102 @@ resource "aws_iam_role_policy" "codepipeline_policy" {
     ]
   })
 }
+
+# CodeBuild service role for PR Validation
+resource "aws_iam_role" "codebuild_pr_validation_role" {
+  count = var.enable_pr_validation ? 1 : 0
+  name  = "codebuild-pr-validation-role-${var.environment}"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "codebuild.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = {
+    Name        = "codebuild-pr-validation-role-${var.environment}"
+    Environment = var.environment
+    Purpose     = "PR Validation"
+  }
+}
+
+# Policy for PR Validation CodeBuild role
+resource "aws_iam_role_policy" "codebuild_pr_validation_policy" {
+  count = var.enable_pr_validation ? 1 : 0
+  name  = "codebuild-pr-validation-policy-${var.environment}"
+  role  = aws_iam_role.codebuild_pr_validation_role[0].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ]
+        Resource = "arn:aws:logs:${var.region}:${var.account_id}:log-group:/aws/codebuild/*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:GetObjectVersion"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# EventBridge service role for PR validation
+resource "aws_iam_role" "eventbridge_pr_validation_role" {
+  count = var.enable_pr_validation ? 1 : 0
+  name  = "eventbridge-pr-validation-role-${var.environment}"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "events.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = {
+    Name        = "eventbridge-pr-validation-role-${var.environment}"
+    Environment = var.environment
+  }
+}
+
+# Policy for EventBridge to trigger CodeBuild
+resource "aws_iam_role_policy" "eventbridge_pr_validation_policy" {
+  count = var.enable_pr_validation ? 1 : 0
+  name  = "eventbridge-pr-validation-policy-${var.environment}"
+  role  = aws_iam_role.eventbridge_pr_validation_role[0].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "codebuild:StartBuild"
+        ]
+        Resource = aws_codebuild_project.pr_validation[0].arn
+      }
+    ]
+  })
+}

@@ -47,8 +47,11 @@ module "cicd" {
   # GitHub configuration
   github_owner  = "gula123"  # Replace with your GitHub username
   github_repo   = "setAdvancedApp"  # Replace with your repository name
-  github_branch = "main"  # or "module3" if you want to use that branch
+  github_branch = "develop"  # Changed to develop branch
   github_token  = var.github_token  # Will be passed via variable
+
+  # PR Validation
+  enable_pr_validation = true  # Enable PR validation with Terraform checks
 
   # AWS resources
   region     = "eu-north-1"
@@ -67,6 +70,8 @@ module "cicd" {
   
   # Standard deployment configuration (no Blue-Green for DEV)
   target_group_name = data.aws_lb_target_group.app_tg.name
+  target_group_arn  = data.aws_lb_target_group.app_tg.arn
+  alb_dns_name      = data.aws_lb.app_lb.dns_name
 }
 
 # Outputs

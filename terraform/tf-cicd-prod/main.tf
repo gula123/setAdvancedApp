@@ -57,6 +57,9 @@ module "cicd" {
   github_branch = "main"  # PROD pipeline triggered by main branch
   github_token  = var.github_token
 
+  # PR Validation
+  enable_pr_validation = true  # Enable PR validation with Terraform checks
+
   # AWS Configuration
   region     = "eu-north-1"
   account_id = data.aws_caller_identity.current.account_id
@@ -78,6 +81,8 @@ module "cicd" {
   # Blue-Green deployment configuration
   target_group_name       = data.aws_lb_target_group.app_tg.name
   target_group_green_name = data.aws_lb_target_group.app_tg_green.name
+  target_group_arn        = data.aws_lb_target_group.app_tg.arn
+  alb_dns_name            = data.aws_lb.app_lb.dns_name
   listener_arn            = data.aws_lb_listener.app_listener.arn
 }
 

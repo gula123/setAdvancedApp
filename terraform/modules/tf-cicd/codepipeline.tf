@@ -113,39 +113,38 @@ resource "aws_codepipeline" "cicd_pipeline" {
     }
   }
 
-  # Add manual approval for non-dev environments
-  dynamic "stage" {
-    for_each = var.environment != "dev" ? [1] : []
-    content {
-      name = "Manual_Approval"
+  # Infrastructure tests - verify deployment health
+  stage {
+    name = "Infrastructure_Tests"
 
-      action {
-        name     = "Manual_Approval"
-        category = "Approval"
-        owner    = "AWS"
-        provider = "Manual"
-        version  = "1"
+    action {
+      name             = "Infrastructure_Tests"
+      category         = "Build"
+      owner            = "AWS"
+      provider         = "CodeBuild"
+      input_artifacts  = ["deploy_build_output"]
+      output_artifacts = ["infrastructure_test_output"]
+      version          = "1"
 
-        configuration = {
-          CustomData = "Please review the deployment to ${var.environment} environment before proceeding"
-        }
+      configuration = {
+        ProjectName = aws_codebuild_project.infrastructure_tests.name
       }
     }
   }
 
-  # Add integration tests stage for QA/PROD
+  # API integration tests stage for QA/PROD
   dynamic "stage" {
     for_each = var.environment != "dev" ? [1] : []
     content {
-      name = "Integration_Tests"
+      name = "API_Integration_Tests"
 
       action {
-        name             = "Integration_Tests"
+        name             = "API_Tests"
         category         = "Build"
         owner            = "AWS"
         provider         = "CodeBuild"
         input_artifacts  = ["deploy_build_output"]
-        output_artifacts = ["test_output"]
+        output_artifacts = ["api_test_output"]
         version          = "1"
 
         configuration = {

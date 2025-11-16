@@ -43,8 +43,11 @@ module "cicd" {
   # GitHub Configuration
   github_owner  = "gula123"
   github_repo   = "setAdvancedApp"
-  github_branch = "release"  # QA pipeline triggered by release branch
+  github_branch = "release/*"  # QA pipeline triggered by any release branch (GitFlow)
   github_token  = var.github_token
+
+  # PR Validation
+  enable_pr_validation = true  # Enable PR validation with Terraform checks
 
   # AWS Configuration
   region     = "eu-north-1"
@@ -66,6 +69,8 @@ module "cicd" {
 
   # Standard deployment configuration (no Blue-Green for QA)
   target_group_name = data.aws_lb_target_group.app_tg.name
+  target_group_arn  = data.aws_lb_target_group.app_tg.arn
+  alb_dns_name      = data.aws_lb.app_lb.dns_name
 }
 # Outputs
 output "codepipeline_name" {
