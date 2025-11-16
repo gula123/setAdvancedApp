@@ -46,21 +46,39 @@ phases:
 
   pre_build:
     commands:
-      - echo "Initializing validation process for PR ${PULL_REQUEST_ID}..."
-      - echo "Source branch ${SOURCE_BRANCH} -> Target branch ${TARGET_BRANCH}"
+      - echo "Initializing Terraform static analysis..."
+      - echo "Repository ${GITHUB_REPO}"
+      - echo "Target branch ${TARGET_BRANCH}"
+      - echo "Commit SHA ${CODEBUILD_RESOLVED_SOURCE_VERSION}"
       - |
-        # Post initial comment to PR
+        # Extract PR number from source version or find it via commit SHA
         export GH_TOKEN=$GITHUB_TOKEN
-        gh pr comment ${PULL_REQUEST_ID} \
-          --repo ${GITHUB_REPO} \
-          --body "🔍 **Terraform Static Analysis Started**
         
-        Build: [${CODEBUILD_BUILD_ID}](${CODEBUILD_BUILD_URL})
+        # Try to find PR number from the commit
+        PR_NUMBER=$(gh pr list --repo ${GITHUB_REPO} --search "${CODEBUILD_RESOLVED_SOURCE_VERSION}" --json number --jq '.[0].number' 2>/dev/null || echo "")
+        
+        if [ -z "$PR_NUMBER" ]; then
+          echo "⚠️  Could not find PR number, skipping PR comments"
+          echo "Running validation without PR feedback..."
+        else
+          echo "Found PR #${PR_NUMBER}"
+          
+          # Post initial comment to PR
+          gh pr comment ${PR_NUMBER} \
+            --repo ${GITHUB_REPO} \
+            --body "🔍 **Terraform Static Analysis Started**
+        
+        Build: [${CODEBUILD_BUILD_ID}](https://console.aws.amazon.com/codesuite/codebuild/projects/setadvanced-pr-validation-dev/build/${CODEBUILD_BUILD_ID})
+        Commit: \`${CODEBUILD_RESOLVED_SOURCE_VERSION:0:8}\`
+        
         - ⏳ Running terraform validate...
         - ⏳ Running checkov security scan...
         - ⏳ Running tflint checks...
         
-        Results will be posted here when complete."
+        Results will be posted here when complete." || echo "Failed to post initial comment"
+        fi
+        
+        export PR_NUMBER
 
   build:
     commands:
@@ -135,6 +153,18 @@ phases:
       - |
         export GH_TOKEN=$GITHUB_TOKEN
         
+        # Only post to PR if we found the PR number
+        if [ -z "$PR_NUMBER" ]; then
+          echo "No PR number found, skipping PR comments"
+          if [ $VALIDATION_FAILED -eq 0 ]; then
+            echo "✅ All validation checks passed"
+            exit 0
+          else
+            echo "❌ Validation checks failed"
+            exit 1
+          fi
+        fi
+        
         if [ $VALIDATION_FAILED -eq 0 ]; then
           # All checks passed - approve PR
           RESULT_EMOJI="✅"
@@ -142,7 +172,7 @@ phases:
           RESULT_MESSAGE="All Terraform static analysis checks have passed! This PR is ready for review."
           
           # Post approval comment
-          gh pr comment ${PULL_REQUEST_ID} \
+          gh pr comment ${PR_NUMBER} \
             --repo ${GITHUB_REPO} \
             --body "## ${RESULT_EMOJI} Terraform Static Analysis: ${RESULT_STATUS}
         
@@ -153,12 +183,11 @@ phases:
         - ${CHECKOV_RESULT}
         - ${TFLINT_RESULT}
         
-        Build: [${CODEBUILD_BUILD_ID}](${CODEBUILD_BUILD_URL})
-        Build Duration: ${CODEBUILD_BUILD_DURATION} seconds"
+        Build: [${CODEBUILD_BUILD_ID}](https://console.aws.amazon.com/codesuite/codebuild/projects/setadvanced-pr-validation-dev/build/${CODEBUILD_BUILD_ID})" || echo "Failed to post comment"
           
           # Approve the PR programmatically
           echo "Attempting to approve PR..."
-          gh pr review ${PULL_REQUEST_ID} --repo ${GITHUB_REPO} --approve --body "Automated approval: All Terraform static checks passed." || echo "Note: PR approval may require additional permissions"
+          gh pr review ${PR_NUMBER} --repo ${GITHUB_REPO} --approve --body "Automated approval: All Terraform static checks passed." || echo "Note: PR approval may require additional permissions"
           
           exit 0
         else
@@ -168,7 +197,7 @@ phases:
           RESULT_MESSAGE="Terraform static analysis found issues that must be fixed before merging."
           
           # Post failure comment
-          gh pr comment ${PULL_REQUEST_ID} \
+          gh pr comment ${PR_NUMBER} \
             --repo ${GITHUB_REPO} \
             --body "## ${RESULT_EMOJI} Terraform Static Analysis: ${RESULT_STATUS}
         
@@ -187,8 +216,7 @@ phases:
         2. Fix the issues in your branch
         3. Push the changes - this check will run automatically
         
-        Build: [${CODEBUILD_BUILD_ID}](${CODEBUILD_BUILD_URL})
-        Build Duration: ${CODEBUILD_BUILD_DURATION} seconds"
+        Build: [${CODEBUILD_BUILD_ID}](https://console.aws.amazon.com/codesuite/codebuild/projects/setadvanced-pr-validation-dev/build/${CODEBUILD_BUILD_ID})" || echo "Failed to post comment"
           
           exit 1
         fi
