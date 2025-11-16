@@ -132,24 +132,21 @@ resource "aws_codepipeline" "cicd_pipeline" {
     }
   }
 
-  # API integration tests stage for QA/PROD
-  dynamic "stage" {
-    for_each = var.environment != "dev" ? [1] : []
-    content {
-      name = "API_Integration_Tests"
+  # API integration tests stage for all environments
+  stage {
+    name = "API_Integration_Tests"
 
-      action {
-        name             = "API_Tests"
-        category         = "Build"
-        owner            = "AWS"
-        provider         = "CodeBuild"
-        input_artifacts  = ["deploy_build_output"]
-        output_artifacts = ["api_test_output"]
-        version          = "1"
+    action {
+      name             = "API_Tests"
+      category         = "Build"
+      owner            = "AWS"
+      provider         = "CodeBuild"
+      input_artifacts  = ["deploy_build_output"]
+      output_artifacts = ["api_test_output"]
+      version          = "1"
 
-        configuration = {
-          ProjectName = aws_codebuild_project.integration_tests[0].name
-        }
+      configuration = {
+        ProjectName = aws_codebuild_project.integration_tests.name
       }
     }
   }

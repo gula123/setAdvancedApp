@@ -106,9 +106,8 @@ resource "aws_codebuild_project" "deploy_build" {
   }
 }
 
-# Integration Tests CodeBuild Project (only for QA/PROD)
+# Integration Tests CodeBuild Project (all environments)
 resource "aws_codebuild_project" "integration_tests" {
-  count        = var.environment != "dev" ? 1 : 0
   name         = "${var.project_name}-integration-tests-${var.environment}"
   description  = "Integration tests for ${var.environment} environment"
   service_role = aws_iam_role.codebuild_deploy_role.arn
