@@ -22,12 +22,14 @@ phases:
       python: 3.11
     commands:
       - echo "Installing Terraform..."
-      - rm -f /usr/local/bin/terraform terraform_*.zip
+      - cd /tmp
+      - rm -f terraform terraform_*.zip
       - wget -q https://releases.hashicorp.com/terraform/1.5.7/terraform_1.5.7_linux_amd64.zip
       - unzip -q terraform_1.5.7_linux_amd64.zip
       - chmod +x terraform
       - mv terraform /usr/local/bin/
       - rm -f terraform_*.zip
+      - cd $CODEBUILD_SRC_DIR
       - terraform version
       
       - echo "Installing Checkov..."
