@@ -147,6 +147,11 @@ resource "aws_codebuild_project" "integration_tests" {
       name  = "LAMBDA_FUNCTION_NAME"
       value = var.lambda_function_name
     }
+
+    environment_variable {
+      name  = "ALB_DNS_NAME"
+      value = var.alb_dns_name
+    }
   }
 
   source {
