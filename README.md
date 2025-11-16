@@ -38,10 +38,17 @@ Each VPC includes:
   - Deployment: Blue-Green (Zero Downtime)
   - CI/CD: ✅ Active (GitHub → CodePipeline → CodeDeploy)
 
-### CI/CD Pipelines (Module 3)
-- ✅ **DEV Pipeline**: `setadvanced-pipeline-dev` (Standard ECS Deployment)
-- ✅ **QA Pipeline**: `setadvanced-pipeline-qa` (Standard ECS Deployment + Manual Approval)
-- ✅ **PROD Pipeline**: `setadvanced-pipeline-prod` (Blue-Green Deployment)
+### CI/CD Pipelines (Module 3) - GitFlow Strategy
+- ✅ **DEV Pipeline**: `setadvanced-pipeline-dev` (develop branch → ECS Rolling Update)
+  - Stages: Source → CI Build → Deploy → Infrastructure Tests → API Integration Tests
+  - PR Validation: Terraform static analysis (validate, checkov, tflint)
+- ✅ **QA Pipeline**: `setadvanced-pipeline-qa` (release/* branches → ECS Rolling Update)
+  - Stages: Source → CI Build → Deploy → Infrastructure Tests → API Integration Tests
+  - PR Validation: Terraform static analysis (validate, checkov, tflint)
+- ✅ **PROD Pipeline**: `setadvanced-pipeline-prod` (main branch → Blue-Green Deployment)
+  - Stages: Source → CI Build → Deploy → Infrastructure Tests → API Integration Tests
+  - PR Validation: Terraform static analysis (validate, checkov, tflint)
+  - Zero-downtime deployment with automatic rollback
 
 ## 📋 Prerequisites
 
@@ -121,37 +128,141 @@ terraform plan
 terraform apply
 ```
 
-### 3. CI/CD Pipeline Deployment (Module 3)
+### 3. CI/CD Pipeline Deployment (Module 3) - GitFlow
 
 #### Prerequisites
-- GitHub personal access token with repo permissions
+- GitHub personal access token with repo permissions (stored in AWS Secrets Manager or OAuth)
 - Application infrastructure deployed (DEV/QA/PROD)
 - GitHub repository: https://github.com/gula123/setAdvancedApp
+- GitFlow branches: `develop`, `release/*`, `main`
 
-#### Deploy DEV CI/CD Pipeline
+#### GitFlow Branch Strategy
+This project uses GitFlow for environment promotion:
+
+1. **Feature Development** → `feature/*` branches
+   - Create from `develop`
+   - Open PR to `develop` for review
+   - PR triggers Terraform validation (static checks only, no deployment)
+   
+2. **Development Environment** → `develop` branch
+   - Merge approved PRs from `feature/*` branches
+   - Automatic deployment to DEV environment
+   - Pipeline: CI Build → Deploy → Infrastructure Tests → API Integration Tests
+   
+3. **QA Environment** → `release/*` branches
+   - Create from `develop` when ready for QA testing
+   - Automatic deployment to QA environment
+   - Pipeline: CI Build → Deploy → Infrastructure Tests → API Integration Tests
+   
+4. **Production Environment** → `main` branch
+   - Merge from `release/*` branches after QA approval
+   - PR triggers Terraform validation (static checks)
+   - Merge triggers Blue-Green deployment to PROD
+   - Pipeline: CI Build → Deploy → Infrastructure Tests → API Integration Tests
+   - Zero-downtime deployment with automatic rollback capability
+
+#### Deploy DEV CI/CD Pipeline (develop branch)
 ```bash
 cd terraform/tf-cicd-dev
-# Create terraform.tfvars with your GitHub token
-echo 'github_token = "YOUR_GITHUB_TOKEN"' > terraform.tfvars
+# GitHub OAuth token will be configured via aws_codebuild_source_credential
 terraform init
 terraform apply
 ```
 
-#### Deploy QA CI/CD Pipeline
+**Configuration:**
+- Branch: `develop`
+- Deployment: ECS Rolling Update
+- PR Validation: Enabled (terraform/checkov/tflint)
+- Stages: Source → CI → Deploy → Infrastructure Tests → API Tests
+
+#### Deploy QA CI/CD Pipeline (release/* branches)
 ```bash
 cd terraform/tf-cicd-qa
-echo 'github_token = "YOUR_GITHUB_TOKEN"' > terraform.tfvars
 terraform init
 terraform apply
 ```
 
-#### Deploy PROD CI/CD Pipeline (Blue-Green)
+**Configuration:**
+- Branch Pattern: `release/*`
+- Deployment: ECS Rolling Update
+- PR Validation: Enabled (terraform/checkov/tflint)
+- Stages: Source → CI → Deploy → Infrastructure Tests → API Tests
+
+#### Deploy PROD CI/CD Pipeline (main branch, Blue-Green)
 ```bash
 cd terraform/tf-cicd-prod
-echo 'github_token = "YOUR_GITHUB_TOKEN"' > terraform.tfvars
 terraform init
 terraform apply
 ```
+
+**Configuration:**
+- Branch: `main`
+- Deployment: Blue-Green (Zero-Downtime)
+- PR Validation: Enabled (terraform/checkov/tflint)
+- Stages: Source → CI → Deploy → Infrastructure Tests → API Tests
+- CodeDeploy: Automatic rollback on failure
+
+## 🔄 GitFlow Development Workflow
+
+### Daily Development Process
+
+1. **Create Feature Branch**
+   ```bash
+   git checkout develop
+   git pull origin develop
+   git checkout -b feature/my-new-feature
+   ```
+
+2. **Develop and Test Locally**
+   ```bash
+   # Make changes
+   ./mvnw clean test
+   git add .
+   git commit -m "Add new feature"
+   git push origin feature/my-new-feature
+   ```
+
+3. **Open Pull Request to develop**
+   - PR automatically triggers Terraform validation
+   - Checks: `terraform fmt`, `terraform validate`, `checkov`, `tflint`
+   - GitHub status checks must pass before merge
+   - Review and approval required
+
+4. **Merge to develop → DEV Deployment**
+   ```bash
+   # After PR approval
+   git checkout develop
+   git merge feature/my-new-feature
+   git push origin develop
+   ```
+   - Automatic trigger: DEV pipeline starts
+   - Pipeline stages: CI Build → Deploy → Infrastructure Tests → API Tests
+   - Monitor in CodePipeline console
+
+5. **Create Release Branch for QA**
+   ```bash
+   git checkout develop
+   git pull origin develop
+   git checkout -b release/1.0.0
+   git push origin release/1.0.0
+   ```
+   - Automatic trigger: QA pipeline starts
+   - Same pipeline stages as DEV
+   - QA testing and validation
+
+6. **Merge to main → PROD Deployment**
+   ```bash
+   # After QA approval, open PR from release/1.0.0 to main
+   # PR triggers Terraform validation (no deployment)
+   # After PR approval and merge:
+   git checkout main
+   git merge release/1.0.0
+   git push origin main
+   ```
+   - Automatic trigger: PROD pipeline starts (Blue-Green)
+   - Zero-downtime deployment
+   - Automatic rollback on failure
+   - Monitor in CodePipeline and CodeDeploy consoles
 
 ## 🔧 Key Features
 
@@ -182,38 +293,61 @@ terraform apply
 - **Application Load Balancer** with health checks
 - **Private subnet deployment** for enhanced security
 
-### CI/CD Automation (Module 3)
-- **GitHub Integration** with webhook triggers
-- **Automated Testing** with CI pipeline (linting, unit tests)
-- **Container Build & Push** to Amazon ECR
-- **ECS Deployment** with rolling updates (DEV/QA)
-- **Blue-Green Deployment** for zero-downtime releases (PROD)
-- **CodeDeploy Integration** with automatic rollback
-- **Manual Approval Gates** for QA environment
-- **Integration Testing** automated in pipeline
+### CI/CD Automation (Module 3) - GitFlow Workflow
+- **GitFlow Branching Strategy**
+  - `develop` branch → DEV environment (automatic deployment)
+  - `release/*` branches → QA environment (automatic deployment)
+  - `main` branch → PROD environment (Blue-Green deployment)
+- **Pull Request Validation** (automatic on PR creation/update)
+  - Terraform format check (`terraform fmt`)
+  - Terraform validation (`terraform validate`)
+  - Security compliance scanning (Checkov with documented exceptions)
+  - Code quality linting (TFLint errors-only mode)
+  - GitHub status checks block merge if validation fails
+- **CI Build Stage** (unit tests before deployment)
+  - Maven compile with JaCoCo code coverage
+  - Unit tests only (excludes integration/controller tests)
+  - Fast feedback loop (~1-2 minutes)
+- **Deployment Stage**
+  - Container build & push to Amazon ECR
+  - ECS task definition update
+  - Rolling updates (DEV/QA) or Blue-Green (PROD)
+- **Infrastructure Tests Stage** (post-deployment validation)
+  - ECS service health checks
+  - Target group health verification
+  - ALB connectivity tests
+  - Application endpoint validation
+- **API Integration Tests Stage** (all environments)
+  - Controller endpoint tests
+  - Image upload/download/search operations
+  - DynamoDB integration verification
+  - S3 integration verification
 
 ## 📁 Project Structure
 
 ```
 setAdvancedApp/
 ├── terraform/
-│   ├── .tflint.hcl          # TFLint configuration for code quality
-│   ├── .checkov.yml         # Checkov security configuration (centralized)
-│   ├── tf-backend/          # S3 + DynamoDB backend
-│   ├── tf-dev/              # DEV environment (10.1.0.0/16)
-│   ├── tf-qa/               # QA environment (10.2.0.0/16)
-│   ├── tf-prod/             # PROD environment (10.3.0.0/16)
-│   ├── tf-cicd-dev/         # CI/CD pipeline for DEV
-│   ├── tf-cicd-qa/          # CI/CD pipeline for QA
-│   ├── tf-cicd-prod/        # CI/CD pipeline for PROD (Blue-Green)
+│   ├── .tflint.hcl                       # TFLint configuration for code quality
+│   ├── .checkov.yml                      # Checkov security configuration (centralized)
+│   ├── tf-backend/                       # S3 + DynamoDB backend
+│   ├── tf-dev/                           # DEV environment (10.1.0.0/16)
+│   ├── tf-qa/                            # QA environment (10.2.0.0/16)
+│   ├── tf-prod/                          # PROD environment (10.3.0.0/16)
+│   ├── tf-cicd-dev/                      # CI/CD pipeline for DEV (develop branch)
+│   ├── tf-cicd-qa/                       # CI/CD pipeline for QA (release/* branches)
+│   ├── tf-cicd-prod/                     # CI/CD pipeline for PROD (main branch)
 │   └── modules/
-│       ├── tf-environment/  # VPC, networking, core services
-│       ├── tf-application/  # ECS, ALB, application resources
-│       └── tf-cicd/         # CodePipeline, CodeBuild, CodeDeploy
-├── src/                     # Java Spring Boot application
-├── Dockerfile               # Container configuration
-├── buildspec-ci.yml         # CodeBuild CI pipeline specification
-└── buildspec-deploy.yml     # CodeBuild deployment specification
+│       ├── tf-environment/               # VPC, networking, core services
+│       ├── tf-application/               # ECS, ALB, application resources
+│       └── tf-cicd/                      # CodePipeline, CodeBuild, CodeDeploy, GitHub webhook
+├── src/                                  # Java Spring Boot application
+├── Dockerfile                            # Container configuration
+├── buildspec-ci.yml                      # CI Build: unit tests, compile
+├── buildspec-deploy.yml                  # Deployment: Docker build, ECR push, ECS update
+├── buildspec-terraform-validate.yml      # PR Validation: terraform/checkov/tflint
+├── buildspec-infrastructure-tests.yml    # Infrastructure Tests: post-deployment validation
+└── buildspec-integration-tests.yml       # API Integration Tests: controller endpoint tests
 ```
 
 ## 🔐 Security Features
