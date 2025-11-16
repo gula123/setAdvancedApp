@@ -10,6 +10,7 @@ phases:
       - aws --version
       - echo "Starting CI build"
       - echo "Running static analysis and tests..."
+      - chmod +x mvnw
   build:
     commands:
       - echo "Running linter checks..."
