@@ -55,30 +55,32 @@ phases:
         export GH_TOKEN=$GITHUB_TOKEN
         
         # Try to find PR number from the commit
+        echo "Searching for PR with commit ${CODEBUILD_RESOLVED_SOURCE_VERSION}..."
         PR_NUMBER=$(gh pr list --repo ${GITHUB_REPO} --search "${CODEBUILD_RESOLVED_SOURCE_VERSION}" --json number --jq '.[0].number' 2>/dev/null || echo "")
         
-        if [ -z "$PR_NUMBER" ]; then
+        if [ -z "$PR_NUMBER" ] || [ "$PR_NUMBER" = "null" ]; then
           echo "⚠️  Could not find PR number, skipping PR comments"
           echo "Running validation without PR feedback..."
+          export PR_NUMBER=""
         else
-          echo "Found PR #${PR_NUMBER}"
+          echo "✅ Found PR #${PR_NUMBER}"
           
-          # Post initial comment to PR
+          # Post initial comment to PR (non-blocking)
           gh pr comment ${PR_NUMBER} \
             --repo ${GITHUB_REPO} \
             --body "🔍 **Terraform Static Analysis Started**
         
-        Build: [${CODEBUILD_BUILD_ID}](https://console.aws.amazon.com/codesuite/codebuild/projects/setadvanced-pr-validation-dev/build/${CODEBUILD_BUILD_ID})
+        Build: [View Logs](https://console.aws.amazon.com/codesuite/codebuild/projects/setadvanced-pr-validation-dev/build/${CODEBUILD_BUILD_ID})
         Commit: \`${CODEBUILD_RESOLVED_SOURCE_VERSION:0:8}\`
         
         - ⏳ Running terraform validate...
         - ⏳ Running checkov security scan...
         - ⏳ Running tflint checks...
         
-        Results will be posted here when complete." || echo "Failed to post initial comment"
+        Results will be posted here when complete." 2>&1 || echo "⚠️  Failed to post initial comment (continuing anyway)"
+          
+          export PR_NUMBER
         fi
-        
-        export PR_NUMBER
 
   build:
     commands:
