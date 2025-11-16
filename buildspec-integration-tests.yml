@@ -37,7 +37,7 @@ phases:
 
       # Run Java controller integration tests
       - echo "Running API controller integration tests..."
-      - ./mvnw test -Dtest="**/*Controller*Test"
+      - ./mvnw test -B -q -Dtest="**/*Controller*Test"
 
   post_build:
     commands:

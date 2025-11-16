@@ -19,7 +19,7 @@ phases:
     commands:
       - echo "Build started on `date`"
       - echo "Building the Spring Boot application..."
-      - ./mvnw clean package -DskipTests
+      - ./mvnw clean package -B -DskipTests
       
       - echo "Building Docker image..."
       - docker build -t $IMAGE_REPO_NAME .
