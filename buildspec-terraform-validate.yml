@@ -1,0 +1,197 @@
+version: 0.2
+
+# Terraform Static Analysis Buildspec
+# =====================================
+# This buildspec runs static analysis on Terraform code for PR validation
+# - terraform validate: Syntax and internal consistency checks
+# - checkov: Security and compliance scanning
+# - tflint: Linting and best practices validation
+#
+# Triggered on: Pull Request creation/update to develop, release, or main branches
+# Reports results back to GitHub PR with approval/rejection
+
+env:
+  variables:
+    TERRAFORM_DIR: "terraform"
+    CHECKOV_CONFIG: "terraform/.checkov.yml"
+    TFLINT_CONFIG: "terraform/.tflint.hcl"
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.11
+    commands:
+      - echo "Installing Terraform..."
+      - wget -q https://releases.hashicorp.com/terraform/1.5.7/terraform_1.5.7_linux_amd64.zip
+      - unzip -q terraform_1.5.7_linux_amd64.zip
+      - mv terraform /usr/local/bin/
+      - terraform version
+      
+      - echo "Installing Checkov..."
+      - pip install checkov --quiet
+      - checkov --version
+      
+      - echo "Installing TFLint..."
+      - curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+      - tflint --version
+      
+      - echo "Installing GitHub CLI for PR feedback..."
+      - curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+      - chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+      - echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+      - apt-get update && apt-get install gh -y
+      - gh --version
+
+  pre_build:
+    commands:
+      - echo "Initializing validation process for PR ${PULL_REQUEST_ID}..."
+      - echo "Source branch ${SOURCE_BRANCH} -> Target branch ${TARGET_BRANCH}"
+      - |
+        # Post initial comment to PR
+        export GH_TOKEN=$GITHUB_TOKEN
+        gh pr comment ${PULL_REQUEST_ID} \
+          --repo ${GITHUB_REPO} \
+          --body "🔍 **Terraform Static Analysis Started**
+        
+        Build: [${CODEBUILD_BUILD_ID}](${CODEBUILD_BUILD_URL})
+        - ⏳ Running terraform validate...
+        - ⏳ Running checkov security scan...
+        - ⏳ Running tflint checks...
+        
+        Results will be posted here when complete."
+
+  build:
+    commands:
+      - echo "==================================="
+      - echo "1. Running Terraform Validate"
+      - echo "==================================="
+      - cd $CODEBUILD_SRC_DIR/$TERRAFORM_DIR
+      - export VALIDATION_FAILED=0
+      - export VALIDATION_OUTPUT=""
+      
+      # Terraform Validate for all modules
+      - |
+        for dir in modules/*/; do
+          echo "Validating $(basename $dir)..."
+          cd $CODEBUILD_SRC_DIR/$TERRAFORM_DIR/$dir
+          terraform init -backend=false > /dev/null 2>&1
+          if terraform validate > /tmp/tf-validate-$(basename $dir).txt 2>&1; then
+            echo "✅ $(basename $dir) - PASSED"
+          else
+            echo "❌ $(basename $dir) - FAILED"
+            export VALIDATION_FAILED=1
+            export VALIDATION_OUTPUT="${VALIDATION_OUTPUT}\n\n**$(basename $dir):**\n\`\`\`\n$(cat /tmp/tf-validate-$(basename $dir).txt)\n\`\`\`"
+          fi
+        done
+      
+      - echo ""
+      - echo "==================================="
+      - echo "2. Running Checkov Security Scan"
+      - echo "==================================="
+      - cd $CODEBUILD_SRC_DIR/$TERRAFORM_DIR
+      - |
+        if checkov -d . --config-file $CODEBUILD_SRC_DIR/$CHECKOV_CONFIG --compact --quiet > /tmp/checkov-output.txt 2>&1; then
+          echo "✅ Checkov - PASSED"
+          CHECKOV_RESULT="✅ **Checkov Security Scan:** PASSED"
+        else
+          CHECKOV_EXIT_CODE=$?
+          if [ $CHECKOV_EXIT_CODE -eq 1 ]; then
+            echo "❌ Checkov - FAILED (Security issues found)"
+            export VALIDATION_FAILED=1
+            # Extract summary from checkov output
+            CHECKOV_SUMMARY=$(grep -A 20 "Passed checks:" /tmp/checkov-output.txt || echo "See full output above")
+            CHECKOV_RESULT="❌ **Checkov Security Scan:** FAILED\n\`\`\`\n${CHECKOV_SUMMARY}\n\`\`\`"
+          else
+            echo "⚠️  Checkov - WARNING (Non-security error: exit code $CHECKOV_EXIT_CODE)"
+            CHECKOV_RESULT="⚠️  **Checkov Security Scan:** WARNING (exit code $CHECKOV_EXIT_CODE)"
+          fi
+        fi
+      
+      - echo ""
+      - echo "==================================="
+      - echo "3. Running TFLint"
+      - echo "==================================="
+      - cd $CODEBUILD_SRC_DIR/$TERRAFORM_DIR
+      - |
+        tflint --init > /dev/null 2>&1
+        if tflint --config $CODEBUILD_SRC_DIR/$TFLINT_CONFIG --recursive --format compact > /tmp/tflint-output.txt 2>&1; then
+          echo "✅ TFLint - PASSED"
+          TFLINT_RESULT="✅ **TFLint:** PASSED"
+        else
+          echo "❌ TFLint - FAILED"
+          export VALIDATION_FAILED=1
+          TFLINT_SUMMARY=$(head -20 /tmp/tflint-output.txt)
+          TFLINT_RESULT="❌ **TFLint:** FAILED\n\`\`\`\n${TFLINT_SUMMARY}\n\`\`\`"
+        fi
+
+  post_build:
+    commands:
+      - echo "==================================="
+      - echo "Posting Results to GitHub PR"
+      - echo "==================================="
+      - cd $CODEBUILD_SRC_DIR
+      - |
+        export GH_TOKEN=$GITHUB_TOKEN
+        
+        if [ $VALIDATION_FAILED -eq 0 ]; then
+          # All checks passed - approve PR
+          RESULT_EMOJI="✅"
+          RESULT_STATUS="PASSED"
+          RESULT_MESSAGE="All Terraform static analysis checks have passed! This PR is ready for review."
+          
+          # Post approval comment
+          gh pr comment ${PULL_REQUEST_ID} \
+            --repo ${GITHUB_REPO} \
+            --body "## ${RESULT_EMOJI} Terraform Static Analysis: ${RESULT_STATUS}
+        
+        ${RESULT_MESSAGE}
+        
+        ### Results Summary:
+        - ✅ **Terraform Validate:** PASSED
+        - ${CHECKOV_RESULT}
+        - ${TFLINT_RESULT}
+        
+        Build: [${CODEBUILD_BUILD_ID}](${CODEBUILD_BUILD_URL})
+        Build Duration: ${CODEBUILD_BUILD_DURATION} seconds"
+          
+          # Approve the PR programmatically
+          echo "Attempting to approve PR..."
+          gh pr review ${PULL_REQUEST_ID} --repo ${GITHUB_REPO} --approve --body "Automated approval: All Terraform static checks passed." || echo "Note: PR approval may require additional permissions"
+          
+          exit 0
+        else
+          # Validation failed
+          RESULT_EMOJI="❌"
+          RESULT_STATUS="FAILED"
+          RESULT_MESSAGE="Terraform static analysis found issues that must be fixed before merging."
+          
+          # Post failure comment
+          gh pr comment ${PULL_REQUEST_ID} \
+            --repo ${GITHUB_REPO} \
+            --body "## ${RESULT_EMOJI} Terraform Static Analysis: ${RESULT_STATUS}
+        
+        ${RESULT_MESSAGE}
+        
+        ### Results Summary:
+        - $([ -z \"$VALIDATION_OUTPUT\" ] && echo \"✅\" || echo \"❌\") **Terraform Validate:** $([ -z \"$VALIDATION_OUTPUT\" ] && echo \"PASSED\" || echo \"FAILED\")
+        ${VALIDATION_OUTPUT}
+        
+        - ${CHECKOV_RESULT}
+        
+        - ${TFLINT_RESULT}
+        
+        ### Next Steps:
+        1. Review the errors above
+        2. Fix the issues in your branch
+        3. Push the changes - this check will run automatically
+        
+        Build: [${CODEBUILD_BUILD_ID}](${CODEBUILD_BUILD_URL})
+        Build Duration: ${CODEBUILD_BUILD_DURATION} seconds"
+          
+          exit 1
+        fi
+
+artifacts:
+  files:
+    - /tmp/*-output.txt
+  name: terraform-validation-results

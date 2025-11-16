@@ -26,6 +26,12 @@ variable "github_branch" {
   default     = "main"
 }
 
+variable "enable_pr_validation" {
+  type        = bool
+  description = "Enable PR validation pipeline with Terraform static checks"
+  default     = true
+}
+
 variable "ecr_repository_uri" {
   type        = string
   description = "ECR repository URI for container images"
@@ -95,5 +101,17 @@ variable "blue_green_hook_lambda_name" {
 variable "listener_arn" {
   type        = string
   description = "ALB listener ARN for blue-green deployment"
+  default     = ""
+}
+
+variable "target_group_arn" {
+  type        = string
+  description = "ARN of the target group for infrastructure tests"
+  default     = ""
+}
+
+variable "alb_dns_name" {
+  type        = string
+  description = "DNS name of the Application Load Balancer for infrastructure tests"
   default     = ""
 }
