@@ -136,8 +136,5 @@ phases:
 
 artifacts:
   files:
-    - imagedefinitions.json
-    - taskdef.json
-    - appspec.yaml
-    - lambda_function.zip
-    - lambda_function.zip
+    - '**/*'
+  discard-paths: yes
