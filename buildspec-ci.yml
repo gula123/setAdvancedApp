@@ -16,16 +16,12 @@ phases:
     commands:
       - echo "Running linter checks..."
       - echo "TODO: Add Maven Checkstyle plugin for code quality checks"
-      
       - echo "Running unit tests with coverage..."
       - ./mvnw clean test jacoco:report
-      
       - echo "Running static code analysis..."
       - echo "TODO: Add SonarQube or similar static analysis"
-      
       - echo "Validating application configuration..."
       - ./mvnw validate
-      
       - echo "Compiling application..."
       - ./mvnw compile
 
