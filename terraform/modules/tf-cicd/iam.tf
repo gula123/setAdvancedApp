@@ -244,23 +244,15 @@ resource "aws_iam_role_policy" "codepipeline_policy" {
         ]
         Resource = [
           aws_codebuild_project.ci_build.arn,
-          aws_codebuild_project.deploy_build.arn
+          aws_codebuild_project.deploy_build.arn,
+          aws_codebuild_project.infrastructure_tests.arn,
+          aws_codebuild_project.integration_tests.arn
         ]
       },
       {
         Effect = "Allow"
         Action = [
-          "ecs:DescribeServices",
-          "ecs:DescribeTaskDefinition",
-          "ecs:DescribeTasks",
-          "ecs:ListTasks",
-          "ecs:RegisterTaskDefinition",
-          "ecs:UpdateService",
-          "ecs:DescribeTaskSets",
-          "ecs:UpdateServicePrimaryTaskSet",
-          "ecs:DeleteTaskSet",
-          "ecs:DescribeClusters",
-          "ecs:ListServices"
+          "ecs:*"
         ]
         Resource = "*"
       },
