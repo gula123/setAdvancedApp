@@ -25,6 +25,22 @@ phases:
     commands:
       - echo "Running infrastructure tests for ${ENVIRONMENT}..."
       - ENV_CAPITALIZED=$(echo ${ENVIRONMENT} | awk '{print toupper(substr($0,1,1)) tolower(substr($0,2))}') && ./mvnw test -B -q -Dtest="**/${ENV_CAPITALIZED}InfrastructureTest"
+  
+  post_build:
+    commands:
+      - echo "==================================="
+      - echo "Infrastructure Test Results"
+      - echo "==================================="
+      - |
+        if [ -f target/surefire-reports/*.txt ]; then
+          for report in target/surefire-reports/*.txt; do
+            if [ -f "$report" ]; then
+              echo "📊 Test: $(basename $report .txt)"
+              grep "Tests run:" "$report" || true
+            fi
+          done
+        fi
+      - echo "==================================="
 
 artifacts:
   files:
