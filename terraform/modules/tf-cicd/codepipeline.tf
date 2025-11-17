@@ -8,23 +8,63 @@ resource "aws_codepipeline" "cicd_pipeline" {
     type     = "S3"
   }
 
+  # Trigger configuration for GitHub v2 with branch patterns
+  dynamic "trigger" {
+    for_each = var.use_github_v2 && length(var.github_trigger_branch_patterns) > 0 ? [1] : []
+    content {
+      provider_type = "CodeStarSourceConnection"
+      git_configuration {
+        source_action_name = "Source"
+        push {
+          branches {
+            includes = var.github_trigger_branch_patterns
+          }
+        }
+      }
+    }
+  }
+
   stage {
     name = "Source"
 
-    action {
-      name             = "Source"
-      category         = "Source"
-      owner            = "ThirdParty"
-      provider         = "GitHub"
-      version          = "1"
-      output_artifacts = ["source_output"]
+    # GitHub v1 source (OAuth)
+    dynamic "action" {
+      for_each = var.use_github_v2 ? [] : [1]
+      content {
+        name             = "Source"
+        category         = "Source"
+        owner            = "ThirdParty"
+        provider         = "GitHub"
+        version          = "1"
+        output_artifacts = ["source_output"]
 
-      configuration = {
-        Owner                = var.github_owner
-        Repo                 = var.github_repo
-        Branch               = var.github_branch
-        OAuthToken           = var.github_token
-        PollForSourceChanges = "true"
+        configuration = {
+          Owner                = var.github_owner
+          Repo                 = var.github_repo
+          Branch               = var.github_branch
+          OAuthToken           = var.github_token
+          PollForSourceChanges = "true"
+        }
+      }
+    }
+
+    # GitHub v2 source (CodeStar Connections)
+    dynamic "action" {
+      for_each = var.use_github_v2 ? [1] : []
+      content {
+        name             = "Source"
+        category         = "Source"
+        owner            = "AWS"
+        provider         = "CodeStarSourceConnection"
+        version          = "1"
+        output_artifacts = ["source_output"]
+
+        configuration = {
+          ConnectionArn        = var.github_connection_arn != "" ? var.github_connection_arn : aws_codestarconnections_connection.github[0].arn
+          FullRepositoryId     = "${var.github_owner}/${var.github_repo}"
+          BranchName           = var.github_branch
+          OutputArtifactFormat = "CODE_ZIP"
+        }
       }
     }
   }

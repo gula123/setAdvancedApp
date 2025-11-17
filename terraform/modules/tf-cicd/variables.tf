@@ -26,6 +26,24 @@ variable "github_branch" {
   default     = "main"
 }
 
+variable "use_github_v2" {
+  type        = bool
+  description = "Use GitHub v2 (CodeStar Connections) with trigger filters instead of GitHub v1"
+  default     = false
+}
+
+variable "github_connection_arn" {
+  type        = string
+  description = "Existing CodeStar Connection ARN (if use_github_v2 is true and connection already exists)"
+  default     = ""
+}
+
+variable "github_trigger_branch_patterns" {
+  type        = list(string)
+  description = "Branch patterns for GitHub v2 triggers (e.g., ['release/**'])"
+  default     = []
+}
+
 variable "enable_pr_validation" {
   type        = bool
   description = "Enable PR validation pipeline with Terraform static checks"

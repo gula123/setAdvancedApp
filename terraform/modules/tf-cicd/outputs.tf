@@ -52,3 +52,13 @@ output "codedeploy_role_arn" {
   value       = var.target_group_green_name != "" ? aws_iam_role.codedeploy_role[0].arn : null
   description = "ARN of the CodeDeploy role"
 }
+
+output "github_connection_arn" {
+  value       = var.use_github_v2 ? (var.github_connection_arn != "" ? var.github_connection_arn : aws_codestarconnections_connection.github[0].arn) : null
+  description = "GitHub connection ARN (needs manual activation in console)"
+}
+
+output "github_connection_status" {
+  value       = var.use_github_v2 ? (var.github_connection_arn != "" ? "EXTERNAL" : aws_codestarconnections_connection.github[0].connection_status) : null
+  description = "GitHub connection status"
+}

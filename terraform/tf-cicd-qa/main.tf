@@ -43,8 +43,12 @@ module "cicd" {
   # GitHub Configuration
   github_owner  = "gula123"
   github_repo   = "setAdvancedApp"
-  github_branch = "release/*"  # QA pipeline triggered by any release branch (GitFlow)
+  github_branch = "release/1.0.0"  # Default branch for manual starts
   github_token  = var.github_token
+
+  # GitHub v2 with trigger filters for release/* branches
+  use_github_v2                  = true
+  github_trigger_branch_patterns = ["release/**"]
 
   # PR Validation - Disabled for QA (branch-based deployment)
   enable_pr_validation = false
@@ -77,6 +81,16 @@ module "cicd" {
 output "codepipeline_name" {
   value       = module.cicd.codepipeline_name
   description = "Name of the CodePipeline"
+}
+
+output "github_connection_arn" {
+  value       = module.cicd.github_connection_arn
+  description = "GitHub connection ARN (needs manual activation in AWS console)"
+}
+
+output "github_connection_status" {
+  value       = module.cicd.github_connection_status
+  description = "GitHub connection status (PENDING until activated in console)"
 }
 
 output "codepipeline_url" {
