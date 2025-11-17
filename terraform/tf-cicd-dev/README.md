@@ -8,14 +8,18 @@ The DEV CI/CD pipeline implements **standard ECS rolling updates** with automate
 
 ### Pipeline Stages
 
-1. **Source**: GitHub repository (main branch)
+1. **Source**: GitHub repository (**develop** branch)
 2. **CI_Build**: Quality checks, linting, unit tests
 3. **Deploy_Build**: Docker image build and push to ECR
-4. **Deploy_ECS**: Direct deployment to ECS service
+4. **Deploy**: Direct deployment to ECS service
+5. **Infrastructure_Tests**: Validate AWS resources (S3, DynamoDB, ALB, etc.)
+6. **Integration_Tests**: API endpoint testing
 
 ### Deployment Strategy
 
 - **Type**: ECS Rolling Update
+- **Branch**: `develop`
+- **Trigger**: GitHub OAuth polling (automatic on push)
 - **Zero Manual Steps**: Fully automated from commit to deployment
 - **Fast Feedback**: Quick iterations for development
 - **No Approval Gates**: Continuous deployment on successful build
@@ -23,10 +27,12 @@ The DEV CI/CD pipeline implements **standard ECS rolling updates** with automate
 ## Components Created
 
 ### CodePipeline Stages:
-1. **Source**: GitHub repository integration
+1. **Source**: GitHub repository integration (develop branch)
 2. **CI_Build**: Quality checks and tests
 3. **Deploy_Build**: Build and package artifacts
 4. **Deploy**: Deploy to ECS service
+5. **Infrastructure_Tests**: Validate infrastructure resources
+6. **Integration_Tests**: API endpoint validation
 
 ### CodeBuild Projects:
 - **setadvanced-ci-dev**: Runs CI checks and tests
@@ -73,9 +79,9 @@ Edit `main.tf` and update the GitHub configuration:
 ```hcl
 module "cicd" {
   # ...
-  github_owner  = "your-github-username"
-  github_repo   = "your-repository-name"
-  github_branch = "main"  # or your preferred branch
+  github_owner  = "gula123"
+  github_repo   = "setAdvancedApp"
+  github_branch = "develop"  # DEV environment uses develop branch
   # ...
 }
 ```
