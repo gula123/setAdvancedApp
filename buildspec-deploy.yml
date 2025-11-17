@@ -28,11 +28,11 @@ phases:
 
       - echo "Packaging Lambda function..."
       - cd terraform/modules/tf-application/lambda
-      - zip -q ../../../lambda_function.zip index.py
-      - cd ../../../
-      - echo "Current directory after lambda packaging - should be at project root:"
+      - zip -q ../../../../lambda_function.zip index.py
+      - cd ../../../../
+      - echo "Verifying we're back at project root:"
       - pwd
-      - ls -la lambda_function.zip || echo "Lambda zip not found at root"
+      - ls -la lambda_function.zip
 
   post_build:
     commands:
