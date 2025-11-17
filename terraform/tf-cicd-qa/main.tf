@@ -64,7 +64,7 @@ module "cicd" {
   # ECS Configuration
   ecs_cluster_name = "app-cluster-qa"
   ecs_service_name = "app-service-qa"
-  container_name   = "app"
+  container_name   = "app-container"
 
   # Lambda Configuration
   lambda_function_name = "image-processing-lambda-qa"
