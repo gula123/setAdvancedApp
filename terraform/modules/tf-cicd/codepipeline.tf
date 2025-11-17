@@ -157,66 +157,6 @@ resource "aws_codepipeline" "cicd_pipeline" {
   }
 }
 
-# CloudWatch Event Rule for triggering pipeline on GitHub webhook
-resource "aws_cloudwatch_event_rule" "github_push" {
-  name        = "${var.project_name}-github-push-${var.environment}"
-  description = "Trigger pipeline on GitHub push to ${var.github_branch}"
-
-  event_pattern = jsonencode({
-    source      = ["aws.codepipeline"]
-    detail-type = ["CodePipeline Pipeline Execution State Change"]
-    detail = {
-      pipeline = [aws_codepipeline.cicd_pipeline.name]
-    }
-  })
-
-  tags = {
-    Name        = "${var.project_name}-github-push-${var.environment}"
-    Environment = var.environment
-  }
-}
-
-# CloudWatch Event Target
-resource "aws_cloudwatch_event_target" "codepipeline" {
-  rule      = aws_cloudwatch_event_rule.github_push.name
-  target_id = "TriggerCodePipeline"
-  arn       = aws_codepipeline.cicd_pipeline.arn
-  role_arn  = aws_iam_role.codepipeline_event_role.arn
-}
-
-# IAM Role for CloudWatch Events
-resource "aws_iam_role" "codepipeline_event_role" {
-  name = "codepipeline-event-role-${var.environment}"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "events.amazonaws.com"
-        }
-      }
-    ]
-  })
-}
-
-# IAM Policy for CloudWatch Events
-resource "aws_iam_role_policy" "codepipeline_event_policy" {
-  name = "codepipeline-event-policy-${var.environment}"
-  role = aws_iam_role.codepipeline_event_role.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "codepipeline:StartPipelineExecution"
-        ]
-        Resource = aws_codepipeline.cicd_pipeline.arn
-      }
-    ]
-  })
-}
+# Note: GitHub OAuth v1 source action uses polling (checks every ~1 minute)
+# No EventBridge rules or webhooks needed for GitHub v1
+# For webhook-based triggering, migrate to GitHub v2 (CodeStar Connections)
