@@ -128,12 +128,6 @@ phases:
                   ContainerName: "$ECS_CONTAINER_NAME"
                   ContainerPort: 8080
                 PlatformVersion: LATEST
-        Hooks:
-          - BeforeInstall: "BeforeInstallHookLambda"
-          - AfterInstall: "AfterInstallHookLambda"
-          - AfterAllowTestTraffic: "AfterAllowTestTrafficHookLambda"
-          - BeforeAllowTraffic: "BeforeAllowTrafficHookLambda"
-          - AfterAllowTraffic: "AfterAllowTrafficHookLambda"
         EOF
 
       - echo "Verifying artifact files exist..."
