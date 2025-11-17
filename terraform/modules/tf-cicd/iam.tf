@@ -190,6 +190,21 @@ resource "aws_iam_role_policy" "codebuild_deploy_policy" {
       {
         Effect = "Allow"
         Action = [
+          "kms:Decrypt",
+          "kms:DescribeKey"
+        ]
+        Resource = "*"
+        Condition = {
+          StringEquals = {
+            "kms:ViaService" = [
+              "lambda.${var.region}.amazonaws.com"
+            ]
+          }
+        }
+      },
+      {
+        Effect = "Allow"
+        Action = [
           "ecs:DescribeServices",
           "ecs:DescribeTaskDefinition",
           "ecs:UpdateService"
@@ -240,7 +255,21 @@ resource "aws_iam_role_policy" "codepipeline_policy" {
           "ecs:DescribeTasks",
           "ecs:ListTasks",
           "ecs:RegisterTaskDefinition",
-          "ecs:UpdateService"
+          "ecs:UpdateService",
+          "ecs:DescribeTaskSets",
+          "ecs:UpdateServicePrimaryTaskSet",
+          "ecs:DeleteTaskSet"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "elasticloadbalancing:DescribeTargetGroups",
+          "elasticloadbalancing:DescribeListeners",
+          "elasticloadbalancing:ModifyListener",
+          "elasticloadbalancing:DescribeRules",
+          "elasticloadbalancing:ModifyRule"
         ]
         Resource = "*"
       },
