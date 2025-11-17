@@ -20,10 +20,11 @@ resource "aws_codepipeline" "cicd_pipeline" {
       output_artifacts = ["source_output"]
 
       configuration = {
-        Owner      = var.github_owner
-        Repo       = var.github_repo
-        Branch     = var.github_branch
-        OAuthToken = var.github_token
+        Owner                = var.github_owner
+        Repo                 = var.github_repo
+        Branch               = var.github_branch
+        OAuthToken           = var.github_token
+        PollForSourceChanges = "true"
       }
     }
   }
