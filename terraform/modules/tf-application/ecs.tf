@@ -183,6 +183,10 @@ resource "aws_ecs_service" "app_service" {
   task_definition = aws_ecs_task_definition.app_task.arn
   launch_type     = "FARGATE"
 
+  deployment_controller {
+    type = var.enable_blue_green_deployment ? "CODE_DEPLOY" : "ECS"
+  }
+
   network_configuration {
     subnets         = var.private_subnet_ids
     security_groups = [aws_security_group.ecs_service_sg.id]
@@ -202,5 +206,9 @@ resource "aws_ecs_service" "app_service" {
   tags = {
     Name        = "app-service-${var.environment}"
     Environment = var.environment
+  }
+
+  lifecycle {
+    ignore_changes = [task_definition, load_balancer]
   }
 }

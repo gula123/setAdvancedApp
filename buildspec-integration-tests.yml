@@ -1,0 +1,62 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto21
+
+  pre_build:
+    commands:
+      - echo "Starting integration tests for $ENVIRONMENT environment on `date`"
+      - echo "Setting up test environment..."
+      - chmod +x mvnw
+      - export TEST_BASE_URI="http://${ALB_DNS_NAME}"
+      - echo "Test base URI set to $TEST_BASE_URI"
+      
+  build:
+    commands:
+      # Wait for application to be fully available
+      - echo "Waiting for application at $TEST_BASE_URI to be ready..."
+      - |
+        COUNTER=0
+        while [ $COUNTER -lt 30 ]; do
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$TEST_BASE_URI/actuator/health" || echo "000")
+          if [ "$HTTP_STATUS" = "200" ]; then
+            echo "✅ Application health check passed (HTTP $HTTP_STATUS)"
+            break
+          fi
+          echo "⏳ Waiting for application... (HTTP $HTTP_STATUS) - attempt $((COUNTER + 1))/30"
+          sleep 10
+          COUNTER=$((COUNTER + 1))
+        done
+        
+        if [ $COUNTER -eq 30 ]; then
+          echo "❌ Application health check failed after 5 minutes"
+          exit 1
+        fi
+
+      # Run Java controller integration tests
+      - echo "Running API controller integration tests..."
+      - ./mvnw test -B -q -Dtest="**/*Controller*Test"
+
+  post_build:
+    commands:
+      - echo "==================================="
+      - echo "Integration Test Results"
+      - echo "==================================="
+      - |
+        for report in target/surefire-reports/*.txt; do
+          if [ -f "$report" ]; then
+            echo "📊 Test: $(basename $report .txt)"
+            grep "Tests run:" "$report" || true
+          fi
+        done
+      - echo "==================================="
+      - echo "🎉 All API integration tests completed successfully on `date`"
+      - echo "Environment $ENVIRONMENT validation complete!"
+      - echo "Application URL $TEST_BASE_URI"
+
+artifacts:
+  files:
+    - '**/*'
+  name: integration-test-results

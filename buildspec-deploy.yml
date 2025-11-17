@@ -1,0 +1,140 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto21
+
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      - REPOSITORY_URI=$ECR_REPOSITORY_URI
+      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - IMAGE_TAG=${COMMIT_HASH:=latest}
+      - echo "Building image with tag $IMAGE_TAG"
+      - chmod +x mvnw
+
+  build:
+    commands:
+      - echo "Build started on `date`"
+      - echo "Building the Spring Boot application..."
+      - ./mvnw clean package -B -q -DskipTests
+      
+      - echo "Building Docker image..."
+      - docker build -t $IMAGE_REPO_NAME .
+      - docker tag $IMAGE_REPO_NAME:latest $REPOSITORY_URI:latest
+      - docker tag $IMAGE_REPO_NAME:latest $REPOSITORY_URI:$IMAGE_TAG
+
+      - echo "Packaging Lambda function..."
+      - cd terraform/modules/tf-application/lambda
+      - zip -q ../../../../lambda_function.zip index.py
+      - cd ../../../../
+      - echo "Verifying we're back at project root:"
+      - pwd
+      - ls -la lambda_function.zip
+
+  post_build:
+    commands:
+      - echo "Build completed on `date`"
+      - echo "Pushing Docker image to ECR..."
+      - docker push $REPOSITORY_URI:latest
+      - docker push $REPOSITORY_URI:$IMAGE_TAG
+      
+      - echo "Uploading Lambda function to S3..."
+      - aws s3 cp lambda_function.zip s3://$S3_BUCKET_NAME/image-recognition-lambda/lambda_function.zip
+
+      - echo "Updating Lambda function..."
+      - aws lambda update-function-code --function-name $LAMBDA_NAME --s3-bucket $S3_BUCKET_NAME --s3-key image-recognition-lambda/lambda_function.zip
+
+      - echo "Generating imagedefinitions.json for ECS deployment..."
+      - printf '[{"name":"%s","imageUri":"%s"}]' $ECS_CONTAINER_NAME $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
+      - cat imagedefinitions.json
+
+      - echo "Generating taskdef.json for CodeDeploy Blue-Green deployment..."
+      - |
+        cat > taskdef.json << EOF
+        {
+          "family": "app-task-dev",
+          "networkMode": "awsvpc",
+          "requiresCompatibilities": ["FARGATE"],
+          "cpu": "512",
+          "memory": "1024",
+          "executionRoleArn": "arn:aws:iam::$AWS_ACCOUNT_ID:role/ecs-execution-role-dev",
+          "taskRoleArn": "arn:aws:iam::$AWS_ACCOUNT_ID:role/ecs-task-role-dev",
+          "containerDefinitions": [
+            {
+              "name": "$ECS_CONTAINER_NAME",
+              "image": "<IMAGE1_NAME>",
+              "portMappings": [
+                {
+                  "containerPort": 8080,
+                  "protocol": "tcp"
+                }
+              ],
+              "essential": true,
+              "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                  "awslogs-group": "/ecs/app-dev",
+                  "awslogs-region": "$AWS_DEFAULT_REGION",
+                  "awslogs-stream-prefix": "ecs"
+                }
+              },
+              "environment": [
+                {
+                  "name": "SPRING_PROFILES_ACTIVE",
+                  "value": "dev"
+                },
+                {
+                  "name": "SERVER_PORT",
+                  "value": "8080"
+                }
+              ],
+              "healthCheck": {
+                "command": ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"],
+                "interval": 30,
+                "timeout": 5,
+                "retries": 3,
+                "startPeriod": 60
+              }
+            }
+          ]
+        }
+        EOF
+
+      - echo "Generating appspec.yaml for CodeDeploy Blue-Green deployment..."
+      - |
+        cat > appspec.yaml << EOF
+        version: 0.0
+        Resources:
+          - TargetService:
+              Type: AWS::ECS::Service
+              Properties:
+                TaskDefinition: <TASK_DEFINITION>
+                LoadBalancerInfo:
+                  ContainerName: "$ECS_CONTAINER_NAME"
+                  ContainerPort: 8080
+                PlatformVersion: LATEST
+        Hooks:
+          - BeforeInstall: "BeforeInstallHookLambda"
+          - AfterInstall: "AfterInstallHookLambda"
+          - AfterAllowTestTraffic: "AfterAllowTestTrafficHookLambda"
+          - BeforeAllowTraffic: "BeforeAllowTrafficHookLambda"
+          - AfterAllowTraffic: "AfterAllowTrafficHookLambda"
+        EOF
+
+      - echo "Verifying artifact files exist..."
+      - pwd
+      - echo "Listing all files in current directory:"
+      - ls -la
+      - echo "Checking specific artifact files:"
+      - test -f imagedefinitions.json && echo "✅ imagedefinitions.json exists" || echo "❌ imagedefinitions.json MISSING"
+      - test -f taskdef.json && echo "✅ taskdef.json exists" || echo "❌ taskdef.json MISSING"
+      - test -f appspec.yaml && echo "✅ appspec.yaml exists" || echo "❌ appspec.yaml MISSING"
+      - test -f lambda_function.zip && echo "✅ lambda_function.zip exists" || echo "❌ lambda_function.zip MISSING"
+
+artifacts:
+  files:
+    - '**/*'
+  discard-paths: yes

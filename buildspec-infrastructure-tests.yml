@@ -1,0 +1,45 @@
+version: 0.2
+
+# Infrastructure Tests Buildspec
+# ================================
+# This buildspec runs infrastructure validation tests after deployment
+# Uses Maven to execute infrastructure test classes
+#
+# Triggered after: Successful deployment to DEV/QA/PROD environments
+# Reports results back to deployment pipeline
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto21
+
+  pre_build:
+    commands:
+      - echo "==================================="
+      - echo "Infrastructure Test Suite"
+      - echo "==================================="
+      - echo "Environment - ${ENVIRONMENT}"
+      - chmod +x mvnw
+
+  build:
+    commands:
+      - echo "Running infrastructure tests for ${ENVIRONMENT}..."
+      - ENV_CAPITALIZED=$(echo ${ENVIRONMENT} | awk '{print toupper(substr($0,1,1)) tolower(substr($0,2))}') && ./mvnw test -B -q -Dtest="**/${ENV_CAPITALIZED}InfrastructureTest"
+  
+  post_build:
+    commands:
+      - echo "==================================="
+      - echo "Infrastructure Test Results"
+      - echo "==================================="
+      - |
+        for report in target/surefire-reports/*.txt; do
+          if [ -f "$report" ]; then
+            echo "📊 Test: $(basename $report .txt)"
+            grep "Tests run:" "$report" || true
+          fi
+        done
+      - echo "==================================="
+
+artifacts:
+  files:
+    - '**/*'

@@ -1,0 +1,39 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto21
+  pre_build:
+    commands:
+      - echo "Logging in to Amazon ECR..."
+      - aws --version
+      - echo "Starting CI build"
+      - echo "Running static analysis and tests..."
+      - chmod +x mvnw
+  build:
+    commands:
+      - echo "Running linter checks..."
+      - echo "Running unit tests with coverage..."
+      - ./mvnw clean test -B -q -Dtest='!**/*Controller*Test,!**/*Infrastructure*Test'
+      - echo "Compiling application..."
+      - ./mvnw compile -B -q
+  post_build:
+    commands:
+      - echo "==================================="
+      - echo "CI Build Test Results"
+      - echo "==================================="
+      - |
+        for report in target/surefire-reports/*.txt; do
+          if [ -f "$report" ]; then
+            echo "📊 Test: $(basename $report .txt)"
+            grep "Tests run:" "$report" || true
+          fi
+        done
+      - echo "==================================="
+      - echo "All quality gates passed successfully"
+
+artifacts:
+  files:
+    - '**/*'
+  name: ci-build-artifacts

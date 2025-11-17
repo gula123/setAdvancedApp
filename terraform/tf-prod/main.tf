@@ -33,6 +33,7 @@ module "application" {
   environment         = "prod"
   application_port    = 8080
   enable_https        = false
+  enable_blue_green_deployment = true  # Blue-Green deployment for PROD only
 }
 
 # Outputs

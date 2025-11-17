@@ -1,0 +1,119 @@
+version: 0.2
+
+# Terraform Static Analysis Buildspec
+# =====================================
+# This buildspec runs static analysis on Terraform code for PR validation
+# - terraform validate: Syntax and internal consistency checks
+# - checkov: Security and compliance scanning
+# - tflint: Linting and best practices validation
+#
+# Triggered on: Pull Request creation/update to develop, release, or main branches
+# Reports results back to GitHub PR with approval/rejection
+
+env:
+  variables:
+    TERRAFORM_DIR: "terraform"
+    CHECKOV_CONFIG: "terraform/.checkov.yml"
+    TFLINT_CONFIG: "terraform/.tflint.hcl"
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.11
+    commands:
+      - echo "Installing Terraform..."
+      - cd /tmp
+      - rm -f terraform terraform_*.zip
+      - wget -q https://releases.hashicorp.com/terraform/1.5.7/terraform_1.5.7_linux_amd64.zip
+      - unzip -q terraform_1.5.7_linux_amd64.zip
+      - chmod +x terraform
+      - mv terraform /usr/local/bin/
+      - rm -f terraform_*.zip
+      - cd $CODEBUILD_SRC_DIR
+      - terraform version
+      
+      - echo "Installing Checkov..."
+      - pip install checkov --quiet
+      - checkov --version
+      
+      - echo "Installing TFLint..."
+      - curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+      - tflint --version
+
+  pre_build:
+    commands:
+      - echo "Initializing Terraform static analysis..."
+      - echo "Repository ${GITHUB_REPO}"
+      - echo "Target branch ${TARGET_BRANCH}"
+      - echo "Commit SHA ${CODEBUILD_RESOLVED_SOURCE_VERSION}"
+      - export VALIDATION_FAILED=0
+
+  build:
+    commands:
+      - echo "==================================="
+      - echo "1. Running Terraform Validate"
+      - echo "==================================="
+      - cd $CODEBUILD_SRC_DIR/$TERRAFORM_DIR
+      - export VALIDATION_FAILED=0
+      
+      - |
+        echo "Validating all Terraform configurations..."
+        terraform fmt -check -recursive || echo "Warning: formatting issues found"
+        if terraform validate -json > /tmp/tf-validate.json 2>&1; then
+          echo "✅ Terraform Validate - PASSED"
+        else
+          echo "❌ Terraform Validate - FAILED"
+          cat /tmp/tf-validate.json
+          export VALIDATION_FAILED=1
+        fi
+      
+      - echo ""
+      - echo "==================================="
+      - echo "2. Running Checkov Security Scan"
+      - echo "==================================="
+      - cd $CODEBUILD_SRC_DIR/$TERRAFORM_DIR
+      - |
+        echo "Running Checkov with exceptions..."
+        if checkov -d . --config-file $CODEBUILD_SRC_DIR/$CHECKOV_CONFIG --compact > /tmp/checkov-output.txt 2>&1; then
+          echo "✅ Checkov - PASSED"
+        else
+          echo "❌ Checkov - FAILED"
+          tail -50 /tmp/checkov-output.txt
+          export VALIDATION_FAILED=1
+        fi
+      
+      - echo ""
+      - echo "==================================="
+      - echo "3. Running TFLint"
+      - echo "==================================="
+      - cd $CODEBUILD_SRC_DIR/$TERRAFORM_DIR
+      - |
+        echo "Running TFLint (errors only)..."
+        tflint --init > /dev/null 2>&1
+        if tflint --config $CODEBUILD_SRC_DIR/$TFLINT_CONFIG --recursive --format compact --minimum-failure-severity=error > /tmp/tflint-output.txt 2>&1; then
+          echo "✅ TFLint - PASSED (no errors)"
+          cat /tmp/tflint-output.txt || true
+        else
+          echo "❌ TFLint - FAILED (errors found)"
+          cat /tmp/tflint-output.txt
+          export VALIDATION_FAILED=1
+        fi
+
+  post_build:
+    commands:
+      - echo "==================================="
+      - echo "Final Results"
+      - echo "==================================="
+      - |
+        if [ $VALIDATION_FAILED -eq 0 ]; then
+          echo "✅ ALL CHECKS PASSED"
+          exit 0
+        else
+          echo "❌ VALIDATION FAILED - Fix errors and push again"
+          exit 1
+        fi
+
+artifacts:
+  files:
+    - /tmp/*-output.txt
+  name: terraform-validation-results
