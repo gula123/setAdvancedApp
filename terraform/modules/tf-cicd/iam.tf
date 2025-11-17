@@ -328,6 +328,13 @@ resource "aws_iam_role_policy" "codepipeline_policy" {
       {
         Effect = "Allow"
         Action = [
+          "codedeploy:*"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
           "codestar-connections:UseConnection"
         ]
         Resource = var.use_github_v2 ? (var.github_connection_arn != "" ? var.github_connection_arn : aws_codestarconnections_connection.github[0].arn) : "*"

@@ -55,13 +55,13 @@ phases:
       - |
         cat > taskdef.json << EOF
         {
-          "family": "app-task-dev",
+          "family": "app-task-$ENVIRONMENT",
           "networkMode": "awsvpc",
           "requiresCompatibilities": ["FARGATE"],
           "cpu": "512",
           "memory": "1024",
-          "executionRoleArn": "arn:aws:iam::$AWS_ACCOUNT_ID:role/ecs-execution-role-dev",
-          "taskRoleArn": "arn:aws:iam::$AWS_ACCOUNT_ID:role/ecs-task-role-dev",
+          "executionRoleArn": "$ECS_EXECUTION_ROLE_ARN",
+          "taskRoleArn": "$ECS_TASK_ROLE_ARN",
           "containerDefinitions": [
             {
               "name": "$ECS_CONTAINER_NAME",
@@ -76,7 +76,7 @@ phases:
               "logConfiguration": {
                 "logDriver": "awslogs",
                 "options": {
-                  "awslogs-group": "/ecs/app-dev",
+                  "awslogs-group": "/ecs/app-$ENVIRONMENT",
                   "awslogs-region": "$AWS_DEFAULT_REGION",
                   "awslogs-stream-prefix": "ecs"
                 }
@@ -84,11 +84,23 @@ phases:
               "environment": [
                 {
                   "name": "SPRING_PROFILES_ACTIVE",
-                  "value": "dev"
+                  "value": "$ENVIRONMENT"
                 },
                 {
                   "name": "SERVER_PORT",
                   "value": "8080"
+                },
+                {
+                  "name": "S3_BUCKET_NAME",
+                  "value": "$S3_BUCKET_NAME"
+                },
+                {
+                  "name": "AWS_DEFAULT_REGION",
+                  "value": "$AWS_DEFAULT_REGION"
+                },
+                {
+                  "name": "DYNAMODB_TABLE_NAME",
+                  "value": "image-recognition-results-$ENVIRONMENT"
                 }
               ],
               "healthCheck": {
@@ -136,5 +148,7 @@ phases:
 
 artifacts:
   files:
-    - '**/*'
-  discard-paths: yes
+    - imagedefinitions.json
+    - taskdef.json
+    - appspec.yaml
+    - lambda_function.zip

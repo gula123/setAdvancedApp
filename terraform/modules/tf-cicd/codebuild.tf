@@ -93,6 +93,31 @@ resource "aws_codebuild_project" "deploy_build" {
       name  = "LAMBDA_NAME"
       value = var.lambda_function_name
     }
+
+    environment_variable {
+      name  = "ENVIRONMENT"
+      value = var.environment
+    }
+
+    environment_variable {
+      name  = "ECS_CLUSTER_NAME"
+      value = var.ecs_cluster_name
+    }
+
+    environment_variable {
+      name  = "ECS_SERVICE_NAME"
+      value = var.ecs_service_name
+    }
+
+    environment_variable {
+      name  = "ECS_TASK_ROLE_ARN"
+      value = "arn:aws:iam::${var.account_id}:role/ecs-task-role-${var.environment}"
+    }
+
+    environment_variable {
+      name  = "ECS_EXECUTION_ROLE_ARN"
+      value = "arn:aws:iam::${var.account_id}:role/ecs-execution-role-${var.environment}"
+    }
   }
 
   source {
