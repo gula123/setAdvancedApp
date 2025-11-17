@@ -498,3 +498,29 @@ aws ecs execute-command --cluster app-cluster-{env} --task {task-id} --container
 - ✅ **Scalability**: Independent scaling per environment
 - ✅ **State Management**: Centralized S3 backend with locking
 - ✅ **Cost Control**: Destroy unused environments easily
+
+## 🔮 Potential Improvements
+
+### CI/CD Pipeline Enhancements
+
+#### 1. GitHub Source Integration v2 (CodeStar Connections)
+**Current**: Using GitHub OAuth v1 with polling (checks every minute)
+**Issue**: Can cause duplicate pipeline executions for the same commit
+**Improvement**: Migrate to GitHub v2 (CodeStar Connections)
+
+**Benefits:**
+- ✅ Webhook-based triggering (instant, no polling)
+- ✅ Eliminates duplicate executions
+- ✅ More reliable PR event handling
+- ✅ Better integration with GitHub Apps
+
+**Implementation Steps:**
+1. Create AWS CodeStar Connection for GitHub
+2. Authorize the connection via AWS Console (one-time OAuth)
+3. Update `terraform/modules/tf-cicd/main.tf` to use `CodeStarSourceConnection` action
+4. Replace `Owner`, `Repo`, `OAuthToken` with `ConnectionArn`, `FullRepositoryId`
+5. Apply changes to all environments (dev, qa, prod)
+
+**References:**
+- [AWS CodeStar Connections Documentation](https://docs.aws.amazon.com/codepipeline/latest/userguide/connections.html)
+- [GitHub v2 Source Action](https://docs.aws.amazon.com/codepipeline/latest/userguide/action-reference-CodestarConnectionSource.html)

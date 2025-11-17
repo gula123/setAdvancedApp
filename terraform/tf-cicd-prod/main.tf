@@ -58,7 +58,7 @@ module "cicd" {
   github_token  = var.github_token
 
   # PR Validation
-  enable_pr_validation = true  # Enable PR validation with Terraform checks
+  enable_pr_validation = false  # PROD should only trigger on pushes to main, not PRs
 
   # AWS Configuration
   region     = "eu-north-1"
@@ -70,7 +70,7 @@ module "cicd" {
   # ECS Configuration
   ecs_cluster_name = "app-cluster-prod"
   ecs_service_name = "app-service-prod"
-  container_name   = "app"
+  container_name   = "app-container"
 
   # Lambda Configuration
   lambda_function_name = "image-processing-lambda-prod"
