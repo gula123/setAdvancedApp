@@ -65,7 +65,7 @@ phases:
           "containerDefinitions": [
             {
               "name": "$ECS_CONTAINER_NAME",
-              "image": "<IMAGE1_NAME>",
+              "image": "$REPOSITORY_URI:$IMAGE_TAG",
               "portMappings": [
                 {
                   "containerPort": 8080,
