@@ -76,7 +76,8 @@ module "cicd" {
   lambda_function_name = "image-processing-lambda-prod"
 
   # S3 Configuration
-  s3_bucket_name = "setadvanced-gula-prod"
+  s3_bucket_name      = "setadvanced-gula-prod"
+  dynamodb_table_name = "image-recognition-results-prod"
 
   # Blue-Green deployment configuration
   target_group_name       = data.aws_lb_target_group.app_tg.name

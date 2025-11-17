@@ -244,8 +244,23 @@ resource "aws_codebuild_project" "infrastructure_tests" {
     }
 
     environment_variable {
+      name  = "AWS_REGION"
+      value = var.region
+    }
+
+    environment_variable {
       name  = "ENVIRONMENT"
       value = var.environment
+    }
+
+    environment_variable {
+      name  = "S3_BUCKET_NAME"
+      value = var.s3_bucket_name
+    }
+
+    environment_variable {
+      name  = "DYNAMODB_TABLE_NAME"
+      value = var.dynamodb_table_name
     }
   }
 

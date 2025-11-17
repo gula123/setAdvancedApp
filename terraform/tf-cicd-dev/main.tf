@@ -63,6 +63,7 @@ module "cicd" {
   ecs_service_name     = "app-service-dev"  # From your existing infrastructure
   lambda_function_name = "image-processing-lambda-dev"  # From your existing infrastructure
   s3_bucket_name       = "setadvanced-gula-dev"  # From your existing infrastructure
+  dynamodb_table_name  = "image-recognition-results-dev"
   
   # Project configuration
   project_name   = "setadvanced"

@@ -65,7 +65,8 @@ module "cicd" {
   lambda_function_name = "image-processing-lambda-qa"
 
   # S3 Configuration
-  s3_bucket_name = "setadvanced-gula-qa"
+  s3_bucket_name      = "setadvanced-gula-qa"
+  dynamodb_table_name = "image-recognition-results-qa"
 
   # Standard deployment configuration (no Blue-Green for QA)
   target_group_name = data.aws_lb_target_group.app_tg.name

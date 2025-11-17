@@ -115,3 +115,8 @@ variable "alb_dns_name" {
   description = "DNS name of the Application Load Balancer for infrastructure tests"
   default     = ""
 }
+
+variable "dynamodb_table_name" {
+  type        = string
+  description = "DynamoDB table name for image recognition results"
+}
