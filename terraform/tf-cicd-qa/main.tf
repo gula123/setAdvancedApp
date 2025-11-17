@@ -46,8 +46,8 @@ module "cicd" {
   github_branch = "release/*"  # QA pipeline triggered by any release branch (GitFlow)
   github_token  = var.github_token
 
-  # PR Validation
-  enable_pr_validation = true  # Enable PR validation with Terraform checks
+  # PR Validation - Disabled for QA (branch-based deployment)
+  enable_pr_validation = false
 
   # AWS Configuration
   region     = "eu-north-1"
