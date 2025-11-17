@@ -18,7 +18,7 @@ phases:
       - echo "==================================="
       - echo "Infrastructure Test Suite"
       - echo "==================================="
-      - echo "Environment: ${ENVIRONMENT}"
+      - echo "Environment - ${ENVIRONMENT}"
 
   build:
     commands:
