@@ -48,6 +48,7 @@ module "cicd" {
 
   # GitHub v2 with trigger filters for release/* branches
   use_github_v2                  = true
+  github_connection_arn          = "arn:aws:codeconnections:eu-north-1:236292171120:connection/64fa0a89-6176-4fb9-b25a-fa7ccd1ca8ab"
   github_trigger_branch_patterns = ["release/**"]
 
   # PR Validation - Disabled for QA (branch-based deployment)

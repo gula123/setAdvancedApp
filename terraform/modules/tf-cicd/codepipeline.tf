@@ -1,7 +1,9 @@
 # CodePipeline for CI/CD
 resource "aws_codepipeline" "cicd_pipeline" {
-  name     = "${var.project_name}-pipeline-${var.environment}"
-  role_arn = aws_iam_role.codepipeline_role.arn
+  name           = "${var.project_name}-pipeline-${var.environment}"
+  role_arn       = aws_iam_role.codepipeline_role.arn
+  pipeline_type  = var.use_github_v2 && length(var.github_trigger_branch_patterns) > 0 ? "V2" : "V1"
+  execution_mode = var.use_github_v2 && length(var.github_trigger_branch_patterns) > 0 ? "QUEUED" : null
 
   artifact_store {
     location = aws_s3_bucket.codepipeline_artifacts.bucket
