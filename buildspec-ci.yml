@@ -24,14 +24,12 @@ phases:
       - echo "CI Build Test Results"
       - echo "==================================="
       - |
-        if [ -f target/surefire-reports/*.txt ]; then
-          for report in target/surefire-reports/*.txt; do
-            if [ -f "$report" ]; then
-              echo "📊 Test: $(basename $report .txt)"
-              grep "Tests run:" "$report" || true
-            fi
-          done
-        fi
+        for report in target/surefire-reports/*.txt; do
+          if [ -f "$report" ]; then
+            echo "📊 Test: $(basename $report .txt)"
+            grep "Tests run:" "$report" || true
+          fi
+        done
       - echo "==================================="
       - echo "All quality gates passed successfully"
 
