@@ -345,14 +345,9 @@ resource "aws_lb_listener" "app_listener_http" {
       }
     }
 
-    dynamic "forward" {
-      for_each = var.enable_https ? [] : [1]
-      content {
-        target_group {
-          arn = aws_lb_target_group.app_target_group.arn
-        }
-      }
-    }
+    # For Blue-Green, point to primary (blue) target group
+    # CodeDeploy will manage traffic shifting between blue and green
+    target_group_arn = var.enable_https ? null : aws_lb_target_group.app_target_group.arn
   }
 
   tags = {
@@ -371,12 +366,8 @@ resource "aws_lb_listener" "app_listener_https" {
   certificate_arn   = local.certificate_arn
 
   default_action {
-    type = "forward"
-    forward {
-      target_group {
-        arn = aws_lb_target_group.app_target_group.arn
-      }
-    }
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.app_target_group.arn
   }
 
   tags = {
