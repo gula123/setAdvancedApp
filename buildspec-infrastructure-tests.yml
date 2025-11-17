@@ -23,8 +23,8 @@ phases:
 
   build:
     commands:
-      - echo "Running infrastructure tests..."
-      - ./mvnw test -B -q -Dtest='**/*Infrastructure*Test'
+      - echo "Running infrastructure tests for ${ENVIRONMENT}..."
+      - ENV_CAPITALIZED=$(echo ${ENVIRONMENT} | awk '{print toupper(substr($0,1,1)) tolower(substr($0,2))}') && ./mvnw test -B -q -Dtest="**/${ENV_CAPITALIZED}InfrastructureTest"
 
 artifacts:
   files:

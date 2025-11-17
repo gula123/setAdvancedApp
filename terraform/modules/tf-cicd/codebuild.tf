@@ -247,26 +247,6 @@ resource "aws_codebuild_project" "infrastructure_tests" {
       name  = "ENVIRONMENT"
       value = var.environment
     }
-
-    environment_variable {
-      name  = "ECS_CLUSTER_NAME"
-      value = var.ecs_cluster_name
-    }
-
-    environment_variable {
-      name  = "ECS_SERVICE_NAME"
-      value = var.ecs_service_name
-    }
-
-    environment_variable {
-      name  = "TARGET_GROUP_ARN"
-      value = var.target_group_arn
-    }
-
-    environment_variable {
-      name  = "ALB_DNS_NAME"
-      value = var.alb_dns_name
-    }
   }
 
   source {
