@@ -258,7 +258,9 @@ resource "aws_iam_role_policy" "codepipeline_policy" {
           "ecs:UpdateService",
           "ecs:DescribeTaskSets",
           "ecs:UpdateServicePrimaryTaskSet",
-          "ecs:DeleteTaskSet"
+          "ecs:DeleteTaskSet",
+          "ecs:DescribeClusters",
+          "ecs:ListServices"
         ]
         Resource = "*"
       },
@@ -269,7 +271,9 @@ resource "aws_iam_role_policy" "codepipeline_policy" {
           "elasticloadbalancing:DescribeListeners",
           "elasticloadbalancing:ModifyListener",
           "elasticloadbalancing:DescribeRules",
-          "elasticloadbalancing:ModifyRule"
+          "elasticloadbalancing:ModifyRule",
+          "elasticloadbalancing:DescribeLoadBalancers",
+          "elasticloadbalancing:DescribeTargetHealth"
         ]
         Resource = "*"
       },
