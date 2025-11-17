@@ -66,7 +66,7 @@ module "cicd" {
   
   # Project configuration
   project_name   = "setadvanced"
-  container_name = "app"
+  container_name = "app-container"
   
   # Standard deployment configuration (no Blue-Green for DEV)
   target_group_name = data.aws_lb_target_group.app_tg.name
