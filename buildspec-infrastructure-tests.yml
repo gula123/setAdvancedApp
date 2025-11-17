@@ -3,27 +3,15 @@ version: 0.2
 # Infrastructure Tests Buildspec
 # ================================
 # This buildspec runs infrastructure validation tests after deployment
-# - Verifies ECS service is running
-# - Checks target group health
-# - Validates ALB connectivity
-# - Tests application endpoints
+# Uses Maven to execute infrastructure test classes
 #
 # Triggered after: Successful deployment to DEV/QA/PROD environments
 # Reports results back to deployment pipeline
 
-env:
-  variables:
-    AWS_DEFAULT_REGION: "eu-north-1"
-    HEALTH_CHECK_TIMEOUT: "300"
-    HEALTH_CHECK_INTERVAL: "10"
-
 phases:
   install:
     runtime-versions:
-      python: 3.11
-    commands:
-      - echo "Installing test dependencies..."
-      - pip install boto3 requests --quiet
+      java: corretto21
 
   pre_build:
     commands:
@@ -31,179 +19,12 @@ phases:
       - echo "Infrastructure Test Suite"
       - echo "==================================="
       - echo "Environment: ${ENVIRONMENT}"
-      - echo "ECS Cluster: ${ECS_CLUSTER_NAME}"
-      - echo "ECS Service: ${ECS_SERVICE_NAME}"
-      - echo "Target Group: ${TARGET_GROUP_ARN}"
-      - echo "ALB DNS: ${ALB_DNS_NAME}"
       - echo ""
 
   build:
     commands:
-      - echo "==================================="
-      - echo "1. ECS Service Health Check"
-      - echo "==================================="
-      - |
-        python3 -c '
-        import boto3, sys, os, time
-        ecs = boto3.client("ecs", region_name=os.environ["AWS_DEFAULT_REGION"])
-        cluster = os.environ["ECS_CLUSTER_NAME"]
-        service = os.environ["ECS_SERVICE_NAME"]
-        print(f"Checking ECS service: {service} in cluster: {cluster}")
-        response = ecs.describe_services(cluster=cluster, services=[service])
-        if not response["services"]:
-            print("[ERROR] Service not found")
-            sys.exit(1)
-        service_data = response["services"][0]
-        status = service_data["status"]
-        desired = service_data["desiredCount"]
-        running = service_data["runningCount"]
-        print(f"Service Status: {status}")
-        print(f"Desired Count: {desired}")
-        print(f"Running Count: {running}")
-        if status != "ACTIVE":
-            print(f"[ERROR] Service is not ACTIVE (current: {status})")
-            sys.exit(1)
-        if running < desired:
-            print(f"[WARNING] Running count ({running}) less than desired ({desired})")
-            print("Waiting for tasks to start...")
-            timeout = int(os.environ.get("HEALTH_CHECK_TIMEOUT", "300"))
-            interval = int(os.environ.get("HEALTH_CHECK_INTERVAL", "10"))
-            elapsed = 0
-            while running < desired and elapsed < timeout:
-                time.sleep(interval)
-                elapsed += interval
-                response = ecs.describe_services(cluster=cluster, services=[service])
-                running = response["services"][0]["runningCount"]
-                print(f"Running count: {running}/{desired} (waited {elapsed}s)")
-            if running < desired:
-                print(f"[ERROR] Service did not reach desired count within {timeout} seconds")
-                sys.exit(1)
-        print("[OK] ECS Service is healthy")
-        '
-      
-      - echo ""
-      - echo "==================================="
-      - echo "2. Target Group Health Check"
-      - echo "==================================="
-      - |
-        python3 -c '
-        import boto3, sys, os, time
-        elbv2 = boto3.client("elbv2", region_name=os.environ["AWS_DEFAULT_REGION"])
-        target_group_arn = os.environ["TARGET_GROUP_ARN"]
-        print(f"Checking target group: {target_group_arn}")
-        timeout = int(os.environ.get("HEALTH_CHECK_TIMEOUT", "300"))
-        interval = int(os.environ.get("HEALTH_CHECK_INTERVAL", "10"))
-        elapsed = 0
-        all_healthy = False
-        while not all_healthy and elapsed < timeout:
-            response = elbv2.describe_target_health(TargetGroupArn=target_group_arn)
-            targets = response["TargetHealthDescriptions"]
-            if not targets:
-                print("[WARNING] No targets registered yet, waiting...")
-                time.sleep(interval)
-                elapsed += interval
-                continue
-            healthy_count = sum(1 for t in targets if t["TargetHealth"]["State"] == "healthy")
-            total_count = len(targets)
-            print(f"Healthy targets: {healthy_count}/{total_count}")
-            for target in targets:
-                target_id = target["Target"]["Id"]
-                state = target["TargetHealth"]["State"]
-                reason = target["TargetHealth"].get("Reason", "N/A")
-                print(f"  - Target {target_id}: {state} ({reason})")
-            if healthy_count == total_count and total_count > 0:
-                all_healthy = True
-                print("[OK] All targets are healthy")
-                break
-            if elapsed < timeout:
-                print(f"Waiting for targets to become healthy... ({elapsed}s elapsed)")
-                time.sleep(interval)
-                elapsed += interval
-        if not all_healthy:
-            print(f"[ERROR] Not all targets became healthy within {timeout} seconds")
-            sys.exit(1)
-        '
-      
-      - echo ""
-      - echo "==================================="
-      - echo "3. Application Load Balancer Check"
-      - echo "==================================="
-      - |
-        python3 -c '
-        import requests, sys, os, time
-        alb_dns = os.environ["ALB_DNS_NAME"]
-        health_endpoint = f"http://{alb_dns}/actuator/health"
-        print(f"Testing ALB endpoint: {health_endpoint}")
-        print("Waiting 10 seconds for ALB to update routing...")
-        time.sleep(10)
-        try:
-            response = requests.get(health_endpoint, timeout=30)
-            print(f"Response Status: {response.status_code}")
-            print(f"Response Body: {response.text}")
-            if response.status_code != 200:
-                print(f"[ERROR] Health endpoint returned status {response.status_code}")
-                sys.exit(1)
-            if "status" in response.text.lower():
-                print("[OK] ALB is routing traffic correctly")
-            else:
-                print("[WARNING] Unexpected response format")
-        except requests.exceptions.Timeout:
-            print("[ERROR] Request to ALB timed out")
-            sys.exit(1)
-        except Exception as e:
-            print(f"[ERROR] {str(e)}")
-            sys.exit(1)
-        '
-      
-      - echo ""
-      - echo "==================================="
-      - echo "4. Application Endpoints Test"
-      - echo "==================================="
-      - |
-        python3 -c '
-        import requests, sys, os
-        alb_dns = os.environ["ALB_DNS_NAME"]
-        base_url = f"http://{alb_dns}"
-        endpoints = [
-            {"path": "/actuator/health", "description": "Health Check"},
-            {"path": "/actuator/info", "description": "Application Info"},
-        ]
-        failed = False
-        for endpoint in endpoints:
-            url = base_url + endpoint["path"]
-            print(f"Testing {endpoint[\"description\"]}: {url}")
-            try:
-                response = requests.get(url, timeout=30)
-                if response.status_code == 200:
-                    print(f"  [OK] {endpoint[\"description\"]}")
-                else:
-                    print(f"  [WARNING] {endpoint[\"description\"]} - Status {response.status_code}")
-            except Exception as e:
-                print(f"  [ERROR] {endpoint[\"description\"]}: {str(e)}")
-                failed = True
-        if failed:
-            print("[ERROR] Some endpoints failed")
-            sys.exit(1)
-        else:
-            print("[OK] All application endpoints are responsive")
-        '
-
-  post_build:
-    commands:
-      - echo ""
-      - echo "==================================="
-      - echo "Infrastructure Tests Complete"
-      - echo "==================================="
-      - |
-        if [ $CODEBUILD_BUILD_SUCCEEDING -eq 1 ]; then
-          echo "[OK] All infrastructure tests PASSED"
-          echo "Environment ${ENVIRONMENT} is healthy and ready"
-          exit 0
-        else
-          echo "[ERROR] Infrastructure tests FAILED"
-          echo "Please check the logs above for details"
-          exit 1
-        fi
+      - echo "Running infrastructure tests..."
+      - ./mvnw test -B -q -Dtest='**/*Infrastructure*Test'
 
 artifacts:
   files:
