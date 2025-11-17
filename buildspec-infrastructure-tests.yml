@@ -19,6 +19,7 @@ phases:
       - echo "Infrastructure Test Suite"
       - echo "==================================="
       - echo "Environment - ${ENVIRONMENT}"
+      - chmod +x mvnw
 
   build:
     commands:
