@@ -8,10 +8,12 @@ The PROD CI/CD pipeline implements **Blue-Green deployment** for zero-downtime r
 
 ### Pipeline Stages
 
-1. **Source**: GitHub repository (main branch)
+1. **Source**: GitHub repository (**main** branch)
 2. **CI_Build**: Quality checks, linting, unit tests
-3. **Deploy_Build**: Docker image build, push to ECR, generate appspec
+3. **Deploy_Build**: Docker image build, push to ECR, generate deployment artifacts
 4. **Deploy_BlueGreen**: CodeDeploy orchestrates Blue-Green deployment
+5. **Infrastructure_Tests**: Validate AWS resources after deployment
+6. **Integration_Tests**: API endpoint testing on deployed application
 
 ### Blue-Green Deployment Strategy
 
@@ -32,6 +34,8 @@ The PROD CI/CD pipeline implements **Blue-Green deployment** for zero-downtime r
 ### CodeBuild Projects
 - **setadvanced-ci-prod**: CI checks and unit tests
 - **setadvanced-deploy-prod**: Build image and generate deployment artifacts
+- **setadvanced-infrastructure-tests-prod**: Infrastructure validation
+- **setadvanced-integration-tests-prod**: API endpoint testing
 
 ### CodeDeploy
 - **Application**: `setadvanced-app-prod`

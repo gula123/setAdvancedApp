@@ -22,6 +22,9 @@ resource "aws_codebuild_webhook" "pr_validation" {
   # Ensure source credential is created first
   depends_on = [aws_codebuild_source_credential.github]
 
+  # Disable comment approval requirement - trigger automatically on PR events
+  build_type = "BUILD"
+
   filter_group {
     filter {
       type    = "EVENT"
