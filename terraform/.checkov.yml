@@ -186,6 +186,12 @@ skip-check:
   # TODO: Configure KMS CMK for artifact bucket encryption
   - CKV_AWS_145
 
+  # CKV_AWS_40: IAM policies attached directly to users instead of groups/roles
+  # REASON: Tech debt - GitHub CodeConnections IAM user has direct policy attachment
+  # IMPACT: Less secure than group-based permissions, harder to manage at scale
+  # TODO: Refactor to use IAM groups or roles for GitHub connection permissions
+  - CKV_AWS_40
+
 # Configuration Options
 framework: terraform
 compact: true
