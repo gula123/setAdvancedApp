@@ -393,6 +393,17 @@ resource "aws_iam_role_policy" "codebuild_pr_validation_policy" {
           "s3:GetObjectVersion"
         ]
         Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "codebuild:CreateReportGroup",
+          "codebuild:CreateReport",
+          "codebuild:UpdateReport",
+          "codebuild:BatchPutTestCases",
+          "codebuild:BatchPutCodeCoverages"
+        ]
+        Resource = "arn:aws:codebuild:${var.region}:${var.account_id}:report-group/*"
       }
     ]
   })
