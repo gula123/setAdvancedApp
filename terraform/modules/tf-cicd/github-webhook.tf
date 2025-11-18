@@ -25,6 +25,11 @@ resource "aws_codebuild_webhook" "pr_validation" {
   # Disable comment approval requirement - trigger automatically on PR events
   build_type = "BUILD"
 
+  scope_configuration {
+    name  = "GITHUB_GLOBAL"
+    scope = "GITHUB_GLOBAL"
+  }
+
   filter_group {
     filter {
       type    = "EVENT"
@@ -51,6 +56,11 @@ resource "aws_codebuild_webhook" "pr_unit_tests" {
 
   # Trigger automatically on PR events
   build_type = "BUILD"
+
+  scope_configuration {
+    name  = "GITHUB_GLOBAL"
+    scope = "GITHUB_GLOBAL"
+  }
 
   filter_group {
     filter {
