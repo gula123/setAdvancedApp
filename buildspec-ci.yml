@@ -15,7 +15,7 @@ phases:
     commands:
       - echo "Running linter checks..."
       - echo "Running unit tests with coverage..."
-      - ./mvnw clean test -B -q -Dtest='!**/*Controller*Test,!**/*Infrastructure*Test'
+      - ./mvnw clean test -B -q -Dtest="com.example.demo.unit.**"
       - echo "Compiling application..."
       - ./mvnw compile -B -q
   post_build:
