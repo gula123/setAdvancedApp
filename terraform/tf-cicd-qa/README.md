@@ -8,20 +8,22 @@ The QA CI/CD pipeline implements **standard ECS rolling updates** with manual ap
 
 ### Pipeline Stages
 
-1. **Source**: GitHub repository (release branch)
+1. **Source**: GitHub repository (**release/** pattern - any release/* branch)
 2. **CI_Build**: Quality checks, linting, unit tests
 3. **Deploy_Build**: Docker image build and push to ECR
-4. **Deploy_ECS**: Direct deployment to ECS service
-5. **Manual_Approval**: Human review before promoting to testing
-6. **Integration_Tests**: Automated end-to-end testing
+4. **Deploy**: Direct deployment to ECS service
+5. **Infrastructure_Tests**: Validate AWS resources (S3, DynamoDB, ALB, etc.)
+6. **Integration_Tests**: Automated API endpoint testing
 
 ### Deployment Strategy
 
 - **Type**: ECS Rolling Update
-- **Manual Approval**: Required before deployment
-- **Integration Testing**: Automated validation after deployment
-- **Release Branch**: Triggered by commits to `release` branch
-- **Quality Gates**: Ensures stability before production
+- **Branch Pattern**: `release/**` (wildcard pattern, e.g., release/1.0.0, release/2.0.0)
+- **Trigger**: GitHub v2 (CodeStar Connections) with wildcard branch pattern support
+- **Pipeline Type**: V2 with execution mode QUEUED (required for trigger filters)
+- **Auto-triggers**: ~1 minute after push to any release/* branch
+- **No Manual Approval**: Fully automated deployment
+- **Quality Gates**: Infrastructure tests + API integration tests
 
 ## Components Created
 
@@ -33,7 +35,8 @@ The QA CI/CD pipeline implements **standard ECS rolling updates** with manual ap
 ### CodeBuild Projects
 - **setadvanced-ci-qa**: CI checks and unit tests
 - **setadvanced-deploy-qa**: Build and deploy application
-- **setadvanced-integration-tests-qa**: End-to-end testing
+- **setadvanced-infrastructure-tests-qa**: Infrastructure validation
+- **setadvanced-integration-tests-qa**: API endpoint testing
 
 ### AWS Resources
 - S3 bucket for CodePipeline artifacts
@@ -44,9 +47,10 @@ The QA CI/CD pipeline implements **standard ECS rolling updates** with manual ap
 ## Prerequisites
 
 1. **GitHub Repository**: Code in GitHub at `gula123/setAdvancedApp`
-2. **GitHub Personal Access Token**: Required for CodePipeline
+2. **GitHub CodeStar Connection**: Connection ARN configured (GitHub v2 integration)
 3. **QA Infrastructure**: Application infrastructure deployed in QA
-4. **Release Branch**: `release` branch in GitHub
+4. **Release Branches**: Any `release/*` branch (e.g., release/1.0.0, release/2.0.0)
+5. **IAM Permissions**: codeconnections:* permission for using CodeStar Connections
 
 ## Setup Instructions
 

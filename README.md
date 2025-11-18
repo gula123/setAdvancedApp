@@ -40,15 +40,17 @@ Each VPC includes:
 
 ### CI/CD Pipelines (Module 3) - GitFlow Strategy
 - ✅ **DEV Pipeline**: `setadvanced-pipeline-dev` (develop branch → ECS Rolling Update)
+  - Trigger: GitHub OAuth polling (automatic on push)
   - Stages: Source → CI Build → Deploy → Infrastructure Tests → API Integration Tests
-  - PR Validation: Terraform static analysis (validate, checkov, tflint)
-- ✅ **QA Pipeline**: `setadvanced-pipeline-qa` (release/* branches → ECS Rolling Update)
+- ✅ **QA Pipeline**: `setadvanced-pipeline-qa` (release/** pattern → ECS Rolling Update)
+  - Trigger: GitHub v2 (CodeStar Connections) with wildcard branch pattern support
+  - Auto-triggers on any release/* branch creation or push
   - Stages: Source → CI Build → Deploy → Infrastructure Tests → API Integration Tests
-  - PR Validation: Terraform static analysis (validate, checkov, tflint)
 - ✅ **PROD Pipeline**: `setadvanced-pipeline-prod` (main branch → Blue-Green Deployment)
-  - Stages: Source → CI Build → Deploy → Infrastructure Tests → API Integration Tests
-  - PR Validation: Terraform static analysis (validate, checkov, tflint)
-  - Zero-downtime deployment with automatic rollback
+  - Trigger: GitHub OAuth polling (automatic on push)
+  - Stages: Source → CI Build → Deploy (Blue-Green via CodeDeploy) → Infrastructure Tests → API Integration Tests
+  - Zero-downtime deployment with ECS Blue-Green target groups
+  - ALB traffic shifting managed by CodeDeploy
 
 ## 📋 Prerequisites
 
@@ -150,16 +152,17 @@ This project uses GitFlow for environment promotion:
    - Pipeline: CI Build → Deploy → Infrastructure Tests → API Integration Tests
    
 3. **QA Environment** → `release/*` branches
-   - Create from `develop` when ready for QA testing
-   - Automatic deployment to QA environment
+   - Create from `develop` when ready for QA testing (e.g., `release/1.0.0`)
+   - Automatic deployment to QA environment (GitHub v2 CodeStar Connections with wildcard pattern)
+   - Pipeline auto-triggers within ~1 minute of branch creation/push
    - Pipeline: CI Build → Deploy → Infrastructure Tests → API Integration Tests
    
 4. **Production Environment** → `main` branch
    - Merge from `release/*` branches after QA approval
-   - PR triggers Terraform validation (static checks)
-   - Merge triggers Blue-Green deployment to PROD
-   - Pipeline: CI Build → Deploy → Infrastructure Tests → API Integration Tests
-   - Zero-downtime deployment with automatic rollback capability
+   - Automatic Blue-Green deployment to PROD (GitHub OAuth polling)
+   - Pipeline: CI Build → Deploy (Blue-Green via CodeDeploy) → Infrastructure Tests → API Integration Tests
+   - Zero-downtime deployment with ECS Blue/Green target groups
+   - ALB traffic shifting managed by CodeDeploy
 
 #### Deploy DEV CI/CD Pipeline (develop branch)
 ```bash
@@ -175,7 +178,7 @@ terraform apply
 - PR Validation: Enabled (terraform/checkov/tflint)
 - Stages: Source → CI → Deploy → Infrastructure Tests → API Tests
 
-#### Deploy QA CI/CD Pipeline (release/* branches)
+#### Deploy QA CI/CD Pipeline (release/** branches)
 ```bash
 cd terraform/tf-cicd-qa
 terraform init
@@ -183,9 +186,11 @@ terraform apply
 ```
 
 **Configuration:**
-- Branch Pattern: `release/*`
+- Branch Pattern: `release/**` (wildcard pattern support via GitHub v2 CodeStar Connections)
 - Deployment: ECS Rolling Update
-- PR Validation: Enabled (terraform/checkov/tflint)
+- Pipeline Type: V2 with execution mode QUEUED (required for trigger filters)
+- GitHub Integration: CodeStar Connection (not OAuth - supports branch patterns)
+- Auto-triggers: ~1 minute after push to any release/* branch
 - Stages: Source → CI → Deploy → Infrastructure Tests → API Tests
 
 #### Deploy PROD CI/CD Pipeline (main branch, Blue-Green)
@@ -197,10 +202,13 @@ terraform apply
 
 **Configuration:**
 - Branch: `main`
-- Deployment: Blue-Green (Zero-Downtime)
-- PR Validation: Enabled (terraform/checkov/tflint)
-- Stages: Source → CI → Deploy → Infrastructure Tests → API Tests
-- CodeDeploy: Automatic rollback on failure
+- Deployment: Blue-Green (Zero-Downtime) via CodeDeploy
+- Deployment Controller: CODE_DEPLOY (not ECS)
+- Blue/Green Target Groups: `app-tg-prod` (blue) and `app-tg-green-prod` (green)
+- Traffic Shifting: Managed by CodeDeploy via ALB listener rules
+- Health Checks: ECS task health + ALB target group health
+- Stages: Source → CI → Deploy (Blue-Green) → Infrastructure Tests → API Tests
+- Auto-triggers: ~1 minute after push to main branch (GitHub OAuth polling)
 
 ## 🔄 GitFlow Development Workflow
 
