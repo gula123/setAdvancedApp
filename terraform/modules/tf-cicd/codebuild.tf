@@ -246,6 +246,61 @@ resource "aws_codebuild_project" "pr_validation" {
   }
 }
 
+# PR Validation CodeBuild Project - Unit Tests with Coverage
+resource "aws_codebuild_project" "pr_unit_tests" {
+  count        = var.enable_pr_validation ? 1 : 0
+  name         = "${var.project_name}-pr-unit-tests-${var.environment}"
+  description  = "PR validation with unit tests and coverage for ${var.environment}"
+  service_role = aws_iam_role.codebuild_pr_validation_role[0].arn
+
+  artifacts {
+    type = "NO_ARTIFACTS"
+  }
+
+  environment {
+    compute_type                = "BUILD_GENERAL1_SMALL"
+    image                      = "aws/codebuild/standard:7.0"
+    type                       = "LINUX_CONTAINER"
+    image_pull_credentials_type = "CODEBUILD"
+    privileged_mode            = false
+
+    environment_variable {
+      name  = "GITHUB_TOKEN"
+      value = var.github_token
+      type  = "PLAINTEXT"
+    }
+
+    environment_variable {
+      name  = "GITHUB_REPO"
+      value = "${var.github_owner}/${var.github_repo}"
+    }
+
+    environment_variable {
+      name  = "TARGET_BRANCH"
+      value = var.github_branch
+    }
+  }
+
+  source {
+    type            = "GITHUB"
+    location        = "https://github.com/${var.github_owner}/${var.github_repo}.git"
+    git_clone_depth = 1
+    buildspec       = "buildspec-unit-tests.yml"
+
+    git_submodules_config {
+      fetch_submodules = false
+    }
+  }
+
+  source_version = var.github_branch
+
+  tags = {
+    Name        = "${var.project_name}-pr-unit-tests-${var.environment}"
+    Environment = var.environment
+    Purpose     = "PR Validation - Unit Tests"
+  }
+}
+
 # Infrastructure Tests CodeBuild Project
 resource "aws_codebuild_project" "infrastructure_tests" {
   name         = "${var.project_name}-infrastructure-tests-${var.environment}"
