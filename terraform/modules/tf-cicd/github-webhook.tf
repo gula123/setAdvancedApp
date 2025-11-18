@@ -10,8 +10,8 @@ resource "aws_codebuild_source_credential" "github" {
   token       = var.github_token
 }
 
-# GitHub Webhook for PR Events
-# =============================
+# GitHub Webhook for PR Events - Terraform Validation
+# =====================================================
 # This configures GitHub webhook integration to trigger PR validation
 # when pull requests are created or updated targeting the configured branch
 
@@ -23,6 +23,33 @@ resource "aws_codebuild_webhook" "pr_validation" {
   depends_on = [aws_codebuild_source_credential.github]
 
   # Disable comment approval requirement - trigger automatically on PR events
+  build_type = "BUILD"
+
+  filter_group {
+    filter {
+      type    = "EVENT"
+      pattern = "PULL_REQUEST_CREATED,PULL_REQUEST_UPDATED,PULL_REQUEST_REOPENED"
+    }
+
+    filter {
+      type    = "BASE_REF"
+      pattern = "^refs/heads/${var.github_branch}$"
+    }
+  }
+}
+
+# GitHub Webhook for PR Events - Unit Tests
+# ==========================================
+# This webhook triggers unit tests with coverage on PR events
+
+resource "aws_codebuild_webhook" "pr_unit_tests" {
+  count        = var.enable_pr_validation ? 1 : 0
+  project_name = aws_codebuild_project.pr_unit_tests[0].name
+
+  # Ensure source credential is created first
+  depends_on = [aws_codebuild_source_credential.github]
+
+  # Trigger automatically on PR events
   build_type = "BUILD"
 
   filter_group {
