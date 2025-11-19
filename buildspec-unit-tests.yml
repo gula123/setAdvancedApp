@@ -1,0 +1,147 @@
+version: 0.2
+
+# Unit Tests with Coverage Buildspec
+# =====================================
+# This buildspec runs unit tests with JaCoCo coverage analysis for PR validation
+# - Executes all unit tests in src/test/java/**/unit/**
+# - Generates JaCoCo coverage report
+# - Displays easy-to-read coverage summary
+# - Fails if coverage thresholds are not met
+#
+# Triggered on: Pull Request creation/update to develop, release, or main branches
+
+env:
+  variables:
+    MIN_INSTRUCTION_COVERAGE: "85"
+    MIN_BRANCH_COVERAGE: "80"
+    MIN_LINE_COVERAGE: "85"
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto21
+    commands:
+      - echo "Installing Java and Maven..."
+      - chmod +x mvnw
+      - ./mvnw --version
+
+  pre_build:
+    commands:
+      - echo "==================================="
+      - echo "Unit Tests with Coverage Analysis"
+      - echo "==================================="
+      - echo "Repository ${GITHUB_REPO}"
+      - echo "Target Branch ${TARGET_BRANCH}"
+      - echo "Commit SHA ${CODEBUILD_RESOLVED_SOURCE_VERSION}"
+      - echo " "
+
+  build:
+    commands:
+      - echo "Running unit tests with JaCoCo coverage..."
+      - ./mvnw clean test -Dtest="com.example.demo.unit.**" -B -q
+      
+      - echo ""
+      - echo "==================================="
+      - echo "📊 Test Execution Summary"
+      - echo "==================================="
+      - |
+        TOTAL_TESTS=0
+        TOTAL_FAILURES=0
+        TOTAL_ERRORS=0
+        TOTAL_SKIPPED=0
+        
+        for report in target/surefire-reports/TEST-*.xml; do
+          if [ -f "$report" ]; then
+            TESTS=$(grep -oP 'tests="\K[0-9]+' "$report" | head -1)
+            FAILURES=$(grep -oP 'failures="\K[0-9]+' "$report" | head -1)
+            ERRORS=$(grep -oP 'errors="\K[0-9]+' "$report" | head -1)
+            SKIPPED=$(grep -oP 'skipped="\K[0-9]+' "$report" | head -1)
+            
+            TOTAL_TESTS=$((TOTAL_TESTS + TESTS))
+            TOTAL_FAILURES=$((TOTAL_FAILURES + FAILURES))
+            TOTAL_ERRORS=$((TOTAL_ERRORS + ERRORS))
+            TOTAL_SKIPPED=$((TOTAL_SKIPPED + SKIPPED))
+          fi
+        done
+        
+        echo "✅ Total Tests:    $TOTAL_TESTS"
+        echo "❌ Failures:       $TOTAL_FAILURES"
+        echo "⚠️  Errors:         $TOTAL_ERRORS"
+        echo "⏭️  Skipped:        $TOTAL_SKIPPED"
+        echo ""
+        
+        if [ $TOTAL_FAILURES -gt 0 ] || [ $TOTAL_ERRORS -gt 0 ]; then
+          echo "❌ TEST EXECUTION FAILED"
+          exit 1
+        fi
+
+  post_build:
+    commands:
+      - echo "==================================="
+      - echo "📈 Code Coverage Report"
+      - echo "==================================="
+      - |
+        if [ -f "target/site/jacoco/jacoco.csv" ]; then
+          # Calculate overall coverage using awk
+          COVERAGE=$(tail -n +2 target/site/jacoco/jacoco.csv | awk -F',' '
+            $3 != "DemoApplication" && $3 != "CustomTableNameResolver" {
+              instr_miss += $4; instr_cov += $5
+              branch_miss += $6; branch_cov += $7
+              line_miss += $8; line_cov += $9
+            }
+            END {
+              instr_pct = (instr_miss + instr_cov > 0) ? int(instr_cov * 100 / (instr_miss + instr_cov)) : 0
+              branch_pct = (branch_miss + branch_cov > 0) ? int(branch_cov * 100 / (branch_miss + branch_cov)) : 0
+              line_pct = (line_miss + line_cov > 0) ? int(line_cov * 100 / (line_miss + line_cov)) : 0
+              printf "%d,%d,%d", instr_pct, branch_pct, line_pct
+            }
+          ')
+          
+          INSTR_COV=$(echo $COVERAGE | cut -d',' -f1)
+          BRANCH_COV=$(echo $COVERAGE | cut -d',' -f2)
+          LINE_COV=$(echo $COVERAGE | cut -d',' -f3)
+          
+          echo ""
+          echo "📊 Overall Coverage:"
+          echo "  Instruction: ${INSTR_COV}% (min: ${MIN_INSTRUCTION_COVERAGE}%)"
+          echo "  Branch:      ${BRANCH_COV}% (min: ${MIN_BRANCH_COVERAGE}%)"
+          echo "  Line:        ${LINE_COV}% (min: ${MIN_LINE_COVERAGE}%)"
+          echo ""
+          
+          # Check thresholds
+          FAILED=0
+          [ $INSTR_COV -lt $MIN_INSTRUCTION_COVERAGE ] && echo "❌ Instruction coverage below threshold" && FAILED=1
+          [ $BRANCH_COV -lt $MIN_BRANCH_COVERAGE ] && echo "❌ Branch coverage below threshold" && FAILED=1
+          [ $LINE_COV -lt $MIN_LINE_COVERAGE ] && echo "❌ Line coverage below threshold" && FAILED=1
+          
+          if [ $FAILED -eq 1 ]; then
+            echo "❌ COVERAGE THRESHOLDS NOT MET"
+            exit 1
+          else
+            echo "✅ ALL COVERAGE THRESHOLDS MET"
+          fi
+        else
+          echo "❌ Coverage report not found!"
+          exit 1
+        fi
+      
+      - echo "==================================="
+      - echo "✅ Unit Tests Passed Successfully"
+      - echo "==================================="
+
+reports:
+  unit-test-results:
+    files:
+      - 'target/surefire-reports/TEST-*.xml'
+    file-format: 'JUNITXML'
+  
+  coverage-report:
+    files:
+      - 'target/site/jacoco/jacoco.xml'
+    file-format: 'JACOCOXML'
+
+artifacts:
+  files:
+    - 'target/surefire-reports/**/*'
+    - 'target/site/jacoco/**/*'
+  name: unit-test-coverage-artifacts

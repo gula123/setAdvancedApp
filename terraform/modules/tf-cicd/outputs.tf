@@ -62,3 +62,13 @@ output "github_connection_status" {
   value       = var.use_github_v2 ? (var.github_connection_arn != "" ? "EXTERNAL" : aws_codestarconnections_connection.github[0].connection_status) : null
   description = "GitHub connection status"
 }
+
+output "pr_validation_project_name" {
+  value       = var.enable_pr_validation ? aws_codebuild_project.pr_validation[0].name : null
+  description = "Name of the PR validation CodeBuild project"
+}
+
+output "pr_unit_tests_project_name" {
+  value       = var.enable_pr_validation ? aws_codebuild_project.pr_unit_tests[0].name : null
+  description = "Name of the PR unit tests CodeBuild project"
+}
